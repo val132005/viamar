@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Superposición oficial vs vectorizado</title>
+<style>
+  body { font: 14px system-ui, sans-serif; background:#fff; margin:0; padding:16px 22px; color:#1a1a1a }
+  h1 { font-size:18px; color:#12436B; margin:0 0 12px }
+  .et { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#6F6F6F; margin:14px 0 4px }
+  .wrap { position:relative; width:1024px; height:330px; border:1px solid #ddd }
+  .wrap img, .wrap svg, .wrap object { position:absolute; inset:0; width:1024px; height:330px }
+  .dif object { filter: invert(1); opacity:.5 }
+</style>
+</head>
+<body>
+<h1>Oficial (PNG) vs vectorizado (SVG) — 1024×330, tamaño real</h1>
+
+<div class="et">A · Oficial</div>
+<div class="wrap"><img src="viamar-oficial.png" alt=""></div>
+
+<div class="et">B · Vectorizado</div>
+<div class="wrap"><object type="image/svg+xml" data="viamar-vectorizado.svg?v=9"></object></div>
+
+<div class="et">C · Superpuestos — el vectorizado invertido al 50 % sobre el oficial: donde calzan, gris plano; donde no, aparece color</div>
+<div class="wrap dif"><img src="viamar-oficial.png" alt=""><object type="image/svg+xml" data="viamar-vectorizado.svg?v=9"></object></div>
+</body>
+</html>

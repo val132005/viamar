@@ -126,17 +126,25 @@ export function DesignSystemPage() {
 
       <div className="bg-viamar-50 border-b border-viamar-200">
         <p className="max-w-6xl mx-auto px-6 py-2 text-label-sm uppercase tracking-wider text-viamar-800">
-          Prototipo — datos de demostración. El logo es una reconstrucción tipográfica, no el asset oficial.
+          Prototipo — datos de demostración. El logo es el oficial, vectorizado desde el original.
         </p>
       </div>
 
       <main className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-10">
         <Section id="marca" title="Marca">
           <div className="bg-white border border-app-border rounded p-6 flex flex-col gap-3">
-            <ViamarLogo className="h-16 w-[320px]" />
+            <ViamarLogo className="h-16 w-auto self-start" />
             <p className="text-body-sm text-ink-secondary max-w-2xl">
-              «GRUPO» sobre «VIAMAR» en itálica, esfera a la derecha. Sustituir por el SVG oficial
-              antes de presentar al cliente.
+              Logo oficial trazado a curvas desde el original del sitio corporativo (1024×330). Escala
+              sin pixelarse y no depende de que Open Sans esté instalada. Proporción 3,1:1 — darle
+              siempre alto y dejar el ancho automático.
+            </p>
+            <p className="text-body-sm text-ink-secondary max-w-2xl">
+              El azul del logo es <code className="font-code-serial">#0271B8</code> y el gris{' '}
+              <code className="font-code-serial">#858688</code>, medidos sobre el archivo original. La
+              interfaz usa <code className="font-code-serial">#206AA9</code> (viamar-500), que es el azul
+              del CSS del sitio: son dos valores distintos de la misma marca y conviene que Viamar diga
+              cuál manda.
             </p>
           </div>
         </Section>

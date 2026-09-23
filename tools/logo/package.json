@@ -1,0 +1,13 @@
+{
+  "name": "viamar-logo-tools",
+  "private": true,
+  "type": "module",
+  "description": "Vectoriza el logo oficial de Grupo Viamar y emite src/components/brand/ViamarLogo.tsx",
+  "scripts": {
+    "logo": "node separar.mjs && node trazar.mjs && node emitir-componente.mjs"
+  },
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "potrace": "^2.1.8"
+  }
+}

@@ -100,7 +100,7 @@ export function Sidebar({ role, matrix, variant }: Props) {
   return (
     <aside className="w-60 shrink-0 bg-white border-r border-app-border flex flex-col">
       <div className="px-3 py-4 border-b border-app-border">
-        <ViamarLogo className="h-9 w-[180px]" />
+        <ViamarLogo className="h-9 w-auto" />
       </div>
       <nav className="flex-1 overflow-y-auto py-2">
         <Section title={variant === 'dealer' ? 'Portal' : 'Operaciones'} items={ops} />

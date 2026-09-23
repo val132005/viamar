@@ -30,7 +30,7 @@ export function LoginPage() {
         </div>
       </div>
       <div className="py-4 flex justify-center">
-        <ViamarLogo className="h-8 w-[160px] opacity-80" />
+        <ViamarLogo className="h-8 w-auto opacity-80" />
       </div>
     </div>
   )

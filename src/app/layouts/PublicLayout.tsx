@@ -9,7 +9,7 @@ export function PublicLayout() {
       <header className="bg-white border-b border-app-border">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/certificado">
-            <ViamarLogo className="h-10 w-[200px]" />
+            <ViamarLogo className="h-10 w-auto" />
           </Link>
           <Link to="/login" className="text-label-md text-viamar-700 hover:text-viamar-link-hover">
             Acceso interno

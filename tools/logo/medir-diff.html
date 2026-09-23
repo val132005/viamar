@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Diferencia medida</title>
+<style>
+  body { font: 15px system-ui, sans-serif; padding:20px 26px; color:#1a1a1a }
+  h1 { font-size:18px; color:#12436B }
+  #r { font-size:15px; white-space:pre-wrap; background:#F8F8F8; border:1px solid #ddd; padding:12px 14px; border-radius:6px }
+  canvas { border:1px solid #ddd; margin-top:12px; max-width:100% }
+</style>
+</head>
+<body>
+<h1>Diferencia medida entre el PNG oficial y el SVG vectorizado</h1>
+<div id="r">midiendo…</div>
+<canvas id="dif" width="1024" height="330"></canvas>
+<script>
+const W = 1024, H = 330
+function cargar(src) {
+  return new Promise((res, rej) => {
+    const i = new Image(); i.crossOrigin = 'anonymous'
+    i.onload = () => res(i); i.onerror = rej; i.src = src
+  })
+}
+function pintar(img) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H
+  const x = c.getContext('2d', { willReadFrequently: true })
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H)
+  x.drawImage(img, 0, 0, W, H)
+  return x.getImageData(0, 0, W, H).data
+}
+;(async () => {
+  const [a, b] = await Promise.all([cargar('viamar-oficial.png'), cargar('viamar-vectorizado.svg?v=9')])
+  const A = pintar(a), B = pintar(b)
+  const out = document.getElementById('dif').getContext('2d')
+  const img = out.createImageData(W, H)
+  let distintos = 0, tinta = 0, sumaDelta = 0
+  for (let p = 0; p < W * H; p++) {
+    const i = p * 4
+    const d = Math.max(Math.abs(A[i] - B[i]), Math.abs(A[i+1] - B[i+1]), Math.abs(A[i+2] - B[i+2]))
+    // "tinta" = pixel que no es blanco en alguna de las dos
+    const esTinta = (A[i] + A[i+1] + A[i+2] < 720) || (B[i] + B[i+1] + B[i+2] < 720)
+    if (esTinta) { tinta++; sumaDelta += d }
+    if (d > 32) { distintos++; img.data[i] = 255; img.data[i+1] = 40; img.data[i+2] = 40; img.data[i+3] = 255 }
+    else { const v = 255 - Math.round((255 - A[i]) * 0.18); img.data[i] = img.data[i+1] = img.data[i+2] = v; img.data[i+3] = 255 }
+  }
+  out.putImageData(img, 0, 0)
+  document.getElementById('r').textContent =
+    `Píxeles del lienzo: ${W * H}\n` +
+    `Píxeles con tinta (no blancos en alguna versión): ${tinta}\n` +
+    `Píxeles que difieren más de 32/255: ${distintos}  =  ${((distintos / tinta) * 100).toFixed(2)} % de la tinta  (${((distintos / (W*H)) * 100).toFixed(2)} % del lienzo)\n` +
+    `Diferencia media sobre la tinta: ${(sumaDelta / tinta).toFixed(1)} / 255\n\n` +
+    `En rojo, abajo, dónde están las diferencias.`
+})()
+</script>
+</body>
+</html>
