@@ -22,7 +22,7 @@ export function DataTable<T>({
   rows,
   rowKey,
   emptyTitle = 'Sin registros',
-  emptyDescription = 'Los datos de demostración se cargan en F1.',
+  emptyDescription = 'No hay información para mostrar con los filtros actuales.',
 }: Props<T>) {
   if (rows.length === 0) {
     return <EmptyState icon={Inbox} title={emptyTitle} description={emptyDescription} />

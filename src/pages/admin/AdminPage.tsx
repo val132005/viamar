@@ -25,7 +25,7 @@ export function AdminPage() {
     const ok = await ask({
       title: 'Restablecer datos de demo',
       message:
-        'Se borran cuentas, permisos y cualquier dato persistido. La siguiente fase (F1) volverá a sembrar el inventario.',
+        'Se descarta todo lo hecho en esta sesión —honras, diagnósticos, certificados y cambios de permisos— y los datos vuelven a su estado inicial. Se cerrará la sesión y habrá que volver a entrar.',
       confirmLabel: 'Restablecer',
       danger: true,
     })
@@ -38,8 +38,9 @@ export function AdminPage() {
         <div>
           <h1 className="text-headline-lg text-viamar-800">Administración</h1>
           <p className="text-body-sm text-ink-secondary">
-            Matriz editable. El interruptor ⚙️ de honra del supervisor viene apagado (discusión
-            Álvaro / Andree).
+            Matriz editable en vivo. El interruptor ⚙️ de «Ejecutar honra» para el supervisor de
+            gestión técnica viene apagado: es una decisión de negocio pendiente y se puede cambiar
+            aquí mismo.
           </p>
         </div>
         <div className="flex gap-2">
@@ -103,7 +104,7 @@ export function AdminPage() {
                       hint={
                         role === TOGGLE_HONRA_SUPERVISOR.role &&
                         cap === TOGGLE_HONRA_SUPERVISOR.capability
-                          ? 'Apagado por defecto. Encender en vivo ante Hernán.'
+                          ? 'Apagado por defecto: hoy la honra la ejecuta Ventas / Garantías. Encenderlo habilita también al supervisor de gestión técnica.'
                           : undefined
                       }
                       onChange={() => toggle(role, cap)}

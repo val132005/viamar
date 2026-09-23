@@ -21,8 +21,8 @@ export function CertificateLookupPage() {
     <div className="max-w-xl mx-auto bg-white border border-app-border rounded p-6 flex flex-col gap-4">
       <h1 className="text-headline-lg text-viamar-800">Certificado digital de baterías</h1>
       <p className="text-body-sm text-ink-secondary">
-        Misma consulta que el portal público de grupoviamar.com/certificado. Los resultados reales
-        llegan con el seed de F1.
+        Misma consulta que el portal público de grupoviamar.com/certificado: por documento del
+        cliente o por serial de la batería, sin necesidad de iniciar sesión.
       </p>
       <div className="flex flex-wrap gap-1">
         {TABS.map((t) => (

@@ -57,8 +57,8 @@ export function PoliciesPage() {
         <div>
           <h1 className="text-headline-lg text-viamar-800">Políticas y fórmulas</h1>
           <p className="text-body-sm text-ink-secondary">
-            Presets FDD 489 (acredita a Viamar) y FRD 489 (paga el cliente) sobre el mismo caso. El
-            motor no usa eval.
+            La fórmula vigente es la del <strong className="text-viamar-800">FDD 489</strong>: responde
+            el monto que Viamar acredita. El FRD 489 queda como contraste. El motor no usa eval.
           </p>
         </div>
         <Link to="/configuracion/casos-prueba" className="text-label-md text-viamar-700 hover:text-viamar-link-hover">
@@ -89,7 +89,8 @@ export function PoliciesPage() {
       {comparacion ? (
         <div className="grid md:grid-cols-2 gap-3">
           <PresetCard
-            title="Preset FDD 489"
+            title="FDD 489"
+            badge="Vigente"
             hint="La fórmula responde el monto a acreditar"
             primaryLabel="Acredita Viamar"
             primary={comparacion.fdd.montoAcreditar}
@@ -98,7 +99,8 @@ export function PoliciesPage() {
             onApply={() => setFormula(PRESET_FDD489)}
           />
           <PresetCard
-            title="Preset FRD 489"
+            title="FRD 489"
+            badge="Contraste"
             hint="La fórmula responde lo que paga el cliente"
             primaryLabel="Paga el cliente"
             primary={comparacion.frd.montoCliente}
@@ -112,7 +114,8 @@ export function PoliciesPage() {
         <p className="text-body-sm text-viamar-800 bg-viamar-50 rounded px-3 py-2">
           Mismo caso (14 meses, USD 180): FDD responde {usd(comparacion.fdd.montoAcreditar)} (acreditar)
           y FRD responde {usd(comparacion.frd.montoCliente)} (paga el cliente). Son salidas distintas
-          del mismo insumo — no se elige por el cliente.
+          del mismo insumo — no se elige por el cliente. <strong>Viamar opera con el FDD 489</strong>;
+          el FRD se conserva para poder contrastar la cifra ante una discusión.
         </p>
       ) : null}
 
@@ -145,6 +148,7 @@ export function PoliciesPage() {
 
 function PresetCard({
   title,
+  badge,
   hint,
   primaryLabel,
   primary,
@@ -153,6 +157,7 @@ function PresetCard({
   onApply,
 }: {
   title: string
+  badge: 'Vigente' | 'Contraste'
   hint: string
   primaryLabel: string
   primary: number
@@ -160,11 +165,29 @@ function PresetCard({
   vigencia: string
   onApply: () => void
 }) {
+  const vigente = badge === 'Vigente'
   return (
-    <article className="bg-white border border-app-border rounded p-4 flex flex-col gap-2">
+    <article
+      className={
+        vigente
+          ? 'bg-white border-2 border-viamar-500 rounded p-4 flex flex-col gap-2'
+          : 'bg-white border border-app-border rounded p-4 flex flex-col gap-2'
+      }
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h2 className="text-headline-sm">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-headline-sm">{title}</h2>
+            <span
+              className={
+                vigente
+                  ? 'rounded bg-viamar-500 px-2 py-0.5 text-label-sm font-semibold text-white'
+                  : 'rounded bg-app-surface-alt px-2 py-0.5 text-label-sm text-ink-secondary'
+              }
+            >
+              {badge}
+            </span>
+          </div>
           <p className="text-body-sm text-ink-secondary">{hint}</p>
         </div>
         <Button variant="outlined" className="h-8 text-label-md" onClick={onApply}>
