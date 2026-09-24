@@ -22,7 +22,7 @@ export function CoverageChart({ mesesFull = 12, mesesProrrateo = 24 }: Props) {
   const cob13 = coberturaMes(mesesFull + 1, mesesFull, mesesProrrateo)
 
   return (
-    <figure className="bg-white border border-app-border rounded p-4">
+    <figure className="surface p-5">
       <figcaption className="text-label-md mb-2">
         Curva de cobertura mes a mes — el escalón no se corrige: se muestra
       </figcaption>
@@ -30,7 +30,7 @@ export function CoverageChart({ mesesFull = 12, mesesProrrateo = 24 }: Props) {
         <line x1={PAD} y1={HEIGHT - PAD} x2={WIDTH - PAD} y2={HEIGHT - PAD} stroke="#E0E0E0" />
         <line x1={PAD} y1={PAD} x2={PAD} y2={HEIGHT - PAD} stroke="#E0E0E0" />
         <line x1={stepX} y1={PAD} x2={stepX} y2={HEIGHT - PAD} stroke="#039BE5" strokeDasharray="4 3" />
-        <polyline fill="none" stroke="#206AA9" strokeWidth="2.5" points={points} />
+        <polyline fill="none" stroke="#206AA9" strokeWidth="2.8" strokeLinejoin="round" strokeLinecap="round" points={points} />
         <text x={stepX + 6} y={PAD + 12} fontSize="11" fill="#185587">
           mes {mesesFull + 1}
         </text>

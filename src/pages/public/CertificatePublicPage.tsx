@@ -37,7 +37,7 @@ export function CertificatePublicPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto bg-white border border-app-border rounded p-6 flex flex-col gap-3 print:shadow-none">
+    <div className="max-w-xl mx-auto surface p-6 flex flex-col gap-3 print:shadow-none">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-headline-md text-viamar-800">Certificado digital</h1>
         <StatusBadge catalogId={cert.estado} />

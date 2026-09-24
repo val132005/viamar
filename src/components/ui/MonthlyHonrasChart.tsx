@@ -1,99 +1,123 @@
+import { cn } from '../../lib/cn'
+
 export type MesHonra = { mes: string; acreditar: number; cliente: number }
 
-export function MonthlyHonrasChart({ datos }: { datos: MesHonra[] }) {
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+/** `2026-07` → `jul 26`: un eje debe leerse sin descifrarlo. */
+function mesCorto(iso: string): string {
+  const [year, month] = iso.split('-')
+  const idx = Number(month) - 1
+  return `${MESES[idx] ?? month} ${year?.slice(2) ?? ''}`
+}
+
+function money(v: number): string {
+  if (v >= 1000) return `$${(v / 1000).toFixed(1)}k`
+  return `$${Math.round(v)}`
+}
+
+export function MonthlyHonrasChart({
+  datos,
+  className,
+}: {
+  datos: MesHonra[]
+  className?: string
+}) {
   const WIDTH = 560
-  const HEIGHT = 200
-  const PAD_L = 52
-  const PAD_B = 26
-  const PAD_T = 10
+  const HEIGHT = 190
+  const PAD_L = 46
+  const PAD_B = 24
+  const PAD_T = 8
   const innerW = WIDTH - PAD_L - 12
   const innerH = HEIGHT - PAD_T - PAD_B
   const max = Math.max(1, ...datos.map((d) => Math.max(d.acreditar, d.cliente)))
   const n = Math.max(1, datos.length)
   const slot = innerW / n
-  const barW = Math.min(26, slot / 3)
+  const barW = Math.min(22, slot / 3)
   const yFor = (v: number) => PAD_T + innerH * (1 - v / max)
 
+  /* Tres guías horizontales bastan para estimar una magnitud; más rejilla
+     compite con las barras. */
+  const guias = [0, 0.5, 1]
+
   return (
-    <figure className="bg-white border border-app-border rounded p-4">
-      <figcaption className="text-label-md mb-1">Honras por mes (USD)</figcaption>
-      <p className="text-body-sm text-ink-secondary mb-2">
-        Acreditar (azul Viamar) frente a lo que paga el cliente (acento). Full puro se ve como
-        barra azul sola; el prorrateo muestra las dos.
-      </p>
+    <figure className={cn('surface flex min-h-0 flex-col p-3', className)}>
+      <figcaption className="flex items-center justify-between gap-2">
+        <span className="text-headline-md text-ink">Honras por mes</span>
+        <span className="inline-flex items-center gap-3 text-body-xs text-ink-secondary">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-xs bg-viamar-500" aria-hidden="true" />
+            Acreditar
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-xs bg-viamar-accent" aria-hidden="true" />
+            Cliente
+          </span>
+        </span>
+      </figcaption>
+
       {datos.length === 0 ? (
-        <p className="text-body-sm text-ink-secondary">Sin honras en el período visible.</p>
+        <p className="py-6 text-center text-body-sm text-ink-tertiary">
+          Sin honras en el período visible.
+        </p>
       ) : (
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="w-full h-48"
+          preserveAspectRatio="none"
+          className="mt-2 min-h-[110px] w-full flex-1"
           role="img"
-          aria-label="Honras por mes en dólares"
+          aria-label="Importe de honras por mes, en dólares"
         >
-          <line
-            x1={PAD_L}
-            y1={HEIGHT - PAD_B}
-            x2={WIDTH - 12}
-            y2={HEIGHT - PAD_B}
-            stroke="#E0E0E0"
-          />
-          <line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={HEIGHT - PAD_B} stroke="#E0E0E0" />
-          <text x={PAD_L - 6} y={PAD_T + 8} fontSize="10" fill="#6F6F6F" textAnchor="end">
-            {max >= 1000 ? `${(max / 1000).toFixed(1)}k` : String(Math.round(max))}
-          </text>
-          <text x={PAD_L - 6} y={HEIGHT - PAD_B} fontSize="10" fill="#6F6F6F" textAnchor="end">
-            0
-          </text>
+          {guias.map((g) => {
+            const y = PAD_T + innerH * (1 - g)
+            return (
+              <g key={g}>
+                <line x1={PAD_L} y1={y} x2={WIDTH - 12} y2={y} stroke="#EEF1F6" strokeWidth="1" />
+                <text x={PAD_L - 6} y={y + 3} fontSize="9" fill="#86929F" textAnchor="end">
+                  {money(max * g)}
+                </text>
+              </g>
+            )
+          })}
+
           {datos.map((d, i) => {
             const cx = PAD_L + slot * i + slot / 2
             return (
               <g key={d.mes}>
                 <rect
-                  x={cx - barW - 2}
+                  x={cx - barW - 1.5}
                   y={yFor(d.acreditar)}
                   width={barW}
-                  height={HEIGHT - PAD_B - yFor(d.acreditar)}
+                  height={Math.max(0, HEIGHT - PAD_B - yFor(d.acreditar))}
+                  rx="2"
                   fill="#206AA9"
                 >
-                  <title>
-                    {d.mes} · acreditar ${d.acreditar.toFixed(2)}
-                  </title>
+                  <title>{`${mesCorto(d.mes)} · acreditar $${d.acreditar.toFixed(2)}`}</title>
                 </rect>
                 <rect
-                  x={cx + 2}
+                  x={cx + 1.5}
                   y={yFor(d.cliente)}
                   width={barW}
-                  height={HEIGHT - PAD_B - yFor(d.cliente)}
+                  height={Math.max(0, HEIGHT - PAD_B - yFor(d.cliente))}
+                  rx="2"
                   fill="#039BE5"
                 >
-                  <title>
-                    {d.mes} · cliente ${d.cliente.toFixed(2)}
-                  </title>
+                  <title>{`${mesCorto(d.mes)} · cliente $${d.cliente.toFixed(2)}`}</title>
                 </rect>
                 <text
                   x={cx}
-                  y={HEIGHT - PAD_B + 16}
-                  fontSize="10"
-                  fill="#6F6F6F"
+                  y={HEIGHT - PAD_B + 14}
+                  fontSize="9"
+                  fill="#86929F"
                   textAnchor="middle"
                 >
-                  {d.mes.slice(2)}
+                  {mesCorto(d.mes)}
                 </text>
               </g>
             )
           })}
         </svg>
       )}
-      <div className="mt-1 flex gap-4 text-body-sm text-ink-secondary">
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: '#206AA9' }} />
-          USD acreditar
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: '#039BE5' }} />
-          USD cliente
-        </span>
-      </div>
     </figure>
   )
 }

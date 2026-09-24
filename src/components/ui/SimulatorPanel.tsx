@@ -66,12 +66,12 @@ export function SimulatorPanel({ formula, politica }: Props) {
   }, [formula, politica, meses, precioN, vigenteN, cap, preset])
 
   return (
-    <aside className="bg-white border border-app-border rounded p-4 flex flex-col gap-3">
+    <aside className="surface p-5 flex flex-col gap-3">
       <h3 className="text-headline-sm">Simulador</h3>
       <label className="flex flex-col gap-1 text-label-md">
         Serial del seed (opcional)
         <select
-          className="h-10 px-3 rounded border border-app-border-strong bg-white font-code-serial text-[13px]"
+          className="h-10 px-3 rounded-lg border border-app-border-strong bg-white font-code-serial text-[13px] transition-shadow focus:shadow-glow"
           value={serialPick}
           onChange={(e) => applySerial(e.target.value)}
         >

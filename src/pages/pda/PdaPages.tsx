@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { BatteryCharging, CheckCircle2, ShieldAlert } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { FormField, SelectField } from '../../components/ui/FormField'
+import { Pill } from '../../components/ui/Pill'
+import { ProgressBar } from '../../components/ui/ProcessSteps'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { cn } from '../../lib/cn'
 import { iso } from '../../domain/dates'
 import { normalizeSerial } from '../../domain/serial'
 import type { LineaDiagnostico } from '../../domain/entities'
@@ -22,6 +26,31 @@ const DIAG_ACCION: Record<string, string> = {
   DESCARGADA: 'Enviar a carga',
   PARA_GARANTIA: 'Analizar garantía',
 }
+
+/** Los tres dictámenes del PDA, con la acción que cada uno desencadena. */
+const DICTAMENES = [
+  {
+    id: 'BUEN_ESTADO',
+    label: 'Buen estado',
+    hint: DIAG_ACCION.BUEN_ESTADO,
+    icon: CheckCircle2,
+    tint: 'bg-success-soft text-success-text',
+  },
+  {
+    id: 'DESCARGADA',
+    label: 'Descargada',
+    hint: DIAG_ACCION.DESCARGADA,
+    icon: BatteryCharging,
+    tint: 'bg-warning-soft text-warning-text',
+  },
+  {
+    id: 'PARA_GARANTIA',
+    label: 'Para garantía',
+    hint: DIAG_ACCION.PARA_GARANTIA,
+    icon: ShieldAlert,
+    tint: 'bg-critical-soft text-critical-text',
+  },
+] as const
 
 export function PdaConteoPage() {
   const baterias = useBatteryStore((s) => s.baterias)
@@ -54,51 +83,87 @@ export function PdaConteoPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <h1 className="text-headline-md text-viamar-800">Conteo</h1>
-      <SelectField
-        label="Dealer en visita"
-        value={visit.dealerId}
-        onChange={(e) => persist({ dealerId: e.target.value, seen: [], diagnosticos: {} })}
+    <div className="flex flex-col gap-4">
+      <h1 className="text-headline-xl text-ink">Conteo</h1>
+
+      <div className="flex flex-col gap-3">
+        <SelectField
+          label="Dealer en visita"
+          value={visit.dealerId}
+          onChange={(e) => persist({ dealerId: e.target.value, seen: [], diagnosticos: {} })}
+        >
+          {dealers.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.nombre}
+            </option>
+          ))}
+        </SelectField>
+        <FormField
+          label="Escanear"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            /* El lector de código emite Enter al final de la lectura: sin esto
+               habría que tocar el botón después de cada escaneo. */
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              add()
+            }
+          }}
+          className="font-code-serial"
+          placeholder="CIB-…"
+        />
+        <Button className="h-12 w-full text-label-lg" onClick={add}>
+          Registrar
+        </Button>
+      </div>
+
+      {/* Avance del conteo: lo que el técnico mira entre lectura y lectura. */}
+      <div>
+        <ProgressBar done={visit.seen.length} total={esperado.length} />
+        <p className="mt-2.5 text-body-sm text-ink-secondary">
+          Contados <strong className="tabular-nums text-ink">{visit.seen.length}</strong> /
+          esperados <strong className="tabular-nums text-ink">{esperado.length}</strong>
+        </p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-body-sm text-ink-secondary">
+          <span className={faltantes.length > 0 ? 'text-warning-text' : undefined}>
+            Faltantes <span className="tabular-nums font-semibold">{faltantes.length}</span>
+          </span>
+          <span aria-hidden="true" className="text-ink-disabled">
+            ·
+          </span>
+          <span className={sobrantes.length > 0 ? 'text-critical-text' : undefined}>
+            Sobrantes <span className="tabular-nums font-semibold">{sobrantes.length}</span>
+          </span>
+        </p>
+      </div>
+
+      {faltantes.length > 0 ? <SerialList title="Faltantes" seriales={faltantes} /> : null}
+      {sobrantes.length > 0 ? <SerialList title="Sobrantes" seriales={sobrantes} /> : null}
+
+      <Link
+        to="/pda/resumen"
+        className="text-label-lg text-viamar-600 underline-offset-2 hover:underline"
       >
-        {dealers.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.nombre}
-          </option>
-        ))}
-      </SelectField>
-      <FormField label="Escanear" value={q} onChange={(e) => setQ(e.target.value)} className="font-code-serial" />
-      <Button onClick={add}>Registrar</Button>
-      <p className="text-body-sm">
-        Contados {visit.seen.length} / esperados {esperado.length}
-      </p>
-      <p className="text-body-sm text-ink-secondary">
-        Faltantes {faltantes.length} · Sobrantes {sobrantes.length}
-      </p>
-      {faltantes.length > 0 ? (
-        <div className="bg-white border border-app-border rounded p-3">
-          <p className="text-label-md">Faltantes</p>
-          <ul className="text-body-sm font-code-serial">
-            {faltantes.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {sobrantes.length > 0 ? (
-        <div className="bg-white border border-app-border rounded p-3">
-          <p className="text-label-md">Sobrantes</p>
-          <ul className="text-body-sm font-code-serial">
-            {sobrantes.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <Link to="/pda/resumen" className="text-viamar-700 text-label-md">
         Ir al cierre de visita
       </Link>
     </div>
+  )
+}
+
+/** Lista de seriales de una discrepancia: el título queda fuera de la tarjeta. */
+function SerialList({ title, seriales }: { title: string; seriales: string[] }) {
+  return (
+    <section>
+      <h2 className="mb-2 text-headline-sm text-ink">{title}</h2>
+      <ul className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line bg-white">
+        {seriales.map((s) => (
+          <li key={s} className="px-3.5 py-2.5 font-code-serial text-body-sm text-ink">
+            {s}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -130,30 +195,78 @@ export function PdaDiagnosticoPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <h1 className="text-headline-md">Diagnóstico</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-headline-xl text-ink">Diagnóstico</h1>
       {esBusqueda ? (
-        <>
-          <FormField label="Serial" value={q} onChange={(e) => setQ(e.target.value)} className="font-code-serial" />
-          <Button onClick={() => navigate(`/pda/diagnostico/${normalizeSerial(q) || 'CIB-00000000'}`)}>
+        <div className="flex flex-col gap-3">
+          <FormField
+            label="Serial"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                navigate(`/pda/diagnostico/${normalizeSerial(q) || 'CIB-00000000'}`)
+              }
+            }}
+            className="font-code-serial"
+            placeholder="CIB-…"
+          />
+          <Button
+            className="h-12 w-full text-label-lg"
+            onClick={() => navigate(`/pda/diagnostico/${normalizeSerial(q) || 'CIB-00000000'}`)}
+          >
             Abrir diagnóstico
           </Button>
-        </>
+        </div>
       ) : (
         <>
-          <p className="font-code-serial text-viamar-700">{serial}</p>
-          {bateria ? <StatusBadge catalogId={bateria.diagnosticoId} /> : <p>No encontrado</p>}
-          <Button className="h-14 text-label-lg" variant="outlined" onClick={() => dictaminar('BUEN_ESTADO')}>
-            Buen estado
-          </Button>
-          <Button className="h-14 text-label-lg" variant="outlined" onClick={() => dictaminar('DESCARGADA')}>
-            Descargada · enviar a carga
-          </Button>
-          <Button className="h-14 text-label-lg" variant="outlined" onClick={() => dictaminar('PARA_GARANTIA')}>
-            Para garantía
-          </Button>
-          <Link to={`/serial/${serial}`} className="text-viamar-700 text-label-md">
-            Abrir ficha
+          <div className="surface flex flex-wrap items-center justify-between gap-2 p-3">
+            <span className="font-code-serial text-headline-md text-ink">{serial}</span>
+            {bateria ? (
+              <StatusBadge catalogId={bateria.diagnosticoId} size="md" />
+            ) : (
+              <Pill tone="danger">No encontrado</Pill>
+            )}
+          </div>
+
+          {/* Dictamen: tres destinos posibles y ninguno es el habitual, así que
+              los tres pesan igual y ninguno se presenta como primario. El color
+              anticipa a dónde va la batería, no jerarquiza la opción. */}
+          <div className="flex flex-col gap-3">
+            {DICTAMENES.map((d) => {
+              const Icon = d.icon
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  disabled={!bateria}
+                  onClick={() => dictaminar(d.id)}
+                  className="flex items-center gap-4 rounded-2xl border border-line bg-white px-4 py-4 text-left shadow-xs transition-[border-color,box-shadow] duration-fast ease-brand hover:border-viamar-200 hover:shadow-sm active:bg-surface-active disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <span
+                    className={cn(
+                      'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl',
+                      d.tint,
+                    )}
+                    aria-hidden="true"
+                  >
+                    <Icon size={24} strokeWidth={1.9} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-headline-sm text-ink">{d.label}</span>
+                    <span className="block text-body-xs text-ink-tertiary">{d.hint}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <Link
+            to={`/serial/${serial}`}
+            className="text-label-lg text-viamar-600 underline-offset-2 hover:underline"
+          >
+            Abrir ficha del serial
           </Link>
         </>
       )}
@@ -232,18 +345,55 @@ export function PdaResumenPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <h1 className="text-headline-md">Cierre de visita</h1>
-      <p className="text-body-sm text-ink-secondary">
-        {dealerNombre} · contados {visit.seen.length}/{esperado.length} · faltantes {faltantes.length} ·
-        sobrantes {sobrantes.length} · diagnosticados {Object.keys(visit.diagnosticos).length}
-      </p>
-      <Button className="h-14 text-label-lg" onClick={cerrarVisita}>
+    <div className="flex flex-col gap-4">
+      <header>
+        <h1 className="text-headline-xl text-ink">Cierre de visita</h1>
+        <p className="mt-1 text-body-sm text-ink-secondary">{dealerNombre}</p>
+      </header>
+
+      {/* Recuento de lo que se va a enviar: la última oportunidad de ver un
+          faltante antes de que la visita quede cerrada. */}
+      <section className="rounded-2xl border border-line bg-white p-4 shadow-xs">
+        <ProgressBar done={visit.seen.length} total={esperado.length} />
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+          <Resumen label="Contados" value={`${visit.seen.length} / ${esperado.length}`} />
+          <Resumen label="Diagnosticados" value={Object.keys(visit.diagnosticos).length} />
+          <Resumen label="Faltantes" value={faltantes.length} tone={faltantes.length ? 'warn' : undefined} />
+          <Resumen label="Sobrantes" value={sobrantes.length} tone={sobrantes.length ? 'danger' : undefined} />
+        </dl>
+      </section>
+
+      <Button className="h-14 w-full text-label-lg" onClick={cerrarVisita}>
         Cerrar visita y generar chequeo
       </Button>
       <p className="text-body-sm text-ink-secondary">
         Genera la solicitud de chequeo en gestión técnica con las líneas contadas y diagnosticadas.
       </p>
+    </div>
+  )
+}
+
+/** Cifra del cierre. El color sólo aparece cuando hay una discrepancia. */
+function Resumen({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: string | number
+  tone?: 'warn' | 'danger'
+}) {
+  return (
+    <div>
+      <dt className="text-body-xs text-ink-tertiary">{label}</dt>
+      <dd
+        className={cn(
+          'text-metric tabular-nums',
+          tone === 'warn' ? 'text-warning-text' : tone === 'danger' ? 'text-critical-text' : 'text-ink',
+        )}
+      >
+        {value}
+      </dd>
     </div>
   )
 }

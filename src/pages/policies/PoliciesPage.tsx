@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CircleAlert, CircleCheck, FlaskConical, Info } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { CoverageChart } from '../../components/ui/CoverageChart'
 import { FormulaEditor } from '../../components/ui/FormulaEditor'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Pill } from '../../components/ui/Pill'
 import { SimulatorPanel } from '../../components/ui/SimulatorPanel'
+import { cn } from '../../lib/cn'
 import { usd } from '../../domain/money'
 import { validateFormula } from '../../domain/warranty/formula'
 import { PRESET_FDD489, PRESET_FRD489 } from '../../domain/warranty/presets'
@@ -52,39 +56,47 @@ export function PoliciesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-headline-lg text-viamar-800">Políticas y fórmulas</h1>
-          <p className="text-body-sm text-ink-secondary">
-            La fórmula vigente es la del <strong className="text-viamar-800">FDD 489</strong>: responde
-            el monto que Viamar acredita. El FRD 489 queda como contraste. El motor no usa eval.
-          </p>
-        </div>
-        <Link to="/configuracion/casos-prueba" className="text-label-md text-viamar-700 hover:text-viamar-link-hover">
-          Casos de prueba
-        </Link>
-      </div>
+    <div className="flex flex-col gap-4 pb-6">
+      <PageHeader
+        title="Políticas y fórmulas"
+        description="La fórmula vigente es la del FDD 489: responde el monto que Viamar acredita. El FRD 489 queda como contraste. El motor no usa eval."
+        actions={
+          <Link to="/configuracion/casos-prueba">
+            <Button variant="secondary" leadingIcon={<FlaskConical size={15} />}>
+              Casos de prueba
+            </Button>
+          </Link>
+        }
+      />
 
-      <label className="text-label-md flex flex-col gap-1 max-w-md">
-        Política
-        <select
-          className="h-10 px-3 rounded border border-app-border-strong bg-white"
-          value={politica ? `${politica.id}::${politica.version}` : ''}
-          onChange={(e) => {
-            setPoliticaKey(e.target.value)
-            const next = politicas.find((p) => `${p.id}::${p.version}` === e.target.value)
-            const f = formulas.find((x) => x.id === next?.formulaId)
-            if (f) setFormula(f.expresion)
-          }}
-        >
-          {politicas.map((p) => (
-            <option key={`${p.id}-${p.version}`} value={`${p.id}::${p.version}`}>
-              {p.nombre} v{p.version} ({p.estado})
-            </option>
-          ))}
-        </select>
-      </label>
+      {/* Selector de política: gobierna todo lo que hay debajo, así que va
+          en una banda propia y no escondido en la cabecera de una tarjeta. */}
+      <div className="surface flex flex-wrap items-center gap-3 px-3.5 py-2.5">
+        <label className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span className="shrink-0 text-label-lg text-ink">Política</span>
+          <select
+            className="h-9 min-w-0 flex-1 rounded-md border border-line-strong bg-white px-2.5 text-body-sm text-ink focus:border-viamar-500 focus:shadow-focus focus:outline-none sm:max-w-md"
+            value={politica ? `${politica.id}::${politica.version}` : ''}
+            onChange={(e) => {
+              setPoliticaKey(e.target.value)
+              const next = politicas.find((p) => `${p.id}::${p.version}` === e.target.value)
+              const f = formulas.find((x) => x.id === next?.formulaId)
+              if (f) setFormula(f.expresion)
+            }}
+          >
+            {politicas.map((p) => (
+              <option key={`${p.id}-${p.version}`} value={`${p.id}::${p.version}`}>
+                {p.nombre} v{p.version} ({p.estado})
+              </option>
+            ))}
+          </select>
+        </label>
+        {politica ? (
+          <Pill tone={politica.estado === 'ACTIVA' ? 'ok' : 'neutral'} dot>
+            {politica.estado === 'ACTIVA' ? `Vigente · v${politica.version}` : politica.estado}
+          </Pill>
+        ) : null}
+      </div>
 
       {comparacion ? (
         <div className="grid md:grid-cols-2 gap-3">
@@ -111,23 +123,35 @@ export function PoliciesPage() {
         </div>
       ) : null}
       {comparacion ? (
-        <p className="text-body-sm text-viamar-800 bg-viamar-50 rounded px-3 py-2">
-          Mismo caso (14 meses, USD 180): FDD responde {usd(comparacion.fdd.montoAcreditar)} (acreditar)
-          y FRD responde {usd(comparacion.frd.montoCliente)} (paga el cliente). Son salidas distintas
-          del mismo insumo — no se elige por el cliente. <strong>Viamar opera con el FDD 489</strong>;
-          el FRD se conserva para poder contrastar la cifra ante una discusión.
-        </p>
+        <aside className="flex items-start gap-2 rounded-md bg-info-soft px-3 py-2 ring-1 ring-inset ring-info-border">
+          <Info size={15} className="mt-0.5 shrink-0 text-info" aria-hidden="true" />
+          <p className="text-body-sm text-info-text">
+            Mismo caso (14 meses, USD 180): FDD responde {usd(comparacion.fdd.montoAcreditar)}{' '}
+            (acreditar) y FRD responde {usd(comparacion.frd.montoCliente)} (paga el cliente). Son
+            salidas distintas del mismo insumo — no se elige por el cliente.{' '}
+            <strong className="font-semibold">Viamar opera con el FDD 489</strong>; el FRD se
+            conserva para poder contrastar la cifra ante una discusión.
+          </p>
+        </aside>
       ) : null}
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_280px] gap-4">
-        <div className="bg-white border border-app-border rounded p-4 flex flex-col gap-2">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="surface flex flex-col gap-3 p-4">
           <FormulaEditor value={formula} onChange={setFormula} />
-          {error ? (
-            <p className="text-body-sm text-danger">{error}</p>
-          ) : (
-            <p className="text-body-sm text-ok">Expresión válida</p>
-          )}
-          <div className="flex flex-wrap items-center gap-3">
+
+          {/* El veredicto de la expresión va pegado al editor y con el color
+              del rol: es la respuesta a lo que el usuario acaba de escribir. */}
+          <p
+            className={cn(
+              'inline-flex items-center gap-1.5 text-body-sm',
+              error ? 'text-critical-text' : 'text-success-text',
+            )}
+          >
+            {error ? <CircleAlert size={14} /> : <CircleCheck size={14} />}
+            {error ?? 'Expresión válida'}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3 border-t border-line-subtle pt-3">
             <Button onClick={onSave} disabled={!!error || !politica}>
               Guardar como versión nueva
             </Button>
@@ -167,37 +191,34 @@ function PresetCard({
 }) {
   const vigente = badge === 'Vigente'
   return (
+    /* La vigente se distingue por el tinte y el borde de marca, no por un
+       grosor mayor: dos tarjetas de distinto grosor descuadran la fila. */
     <article
-      className={
-        vigente
-          ? 'bg-white border-2 border-viamar-500 rounded p-4 flex flex-col gap-2'
-          : 'bg-white border border-app-border rounded p-4 flex flex-col gap-2'
-      }
+      className={cn(
+        'flex flex-col gap-2 rounded-xl border p-4',
+        vigente ? 'border-viamar-300 bg-viamar-50/60' : 'border-line bg-white',
+      )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-headline-sm">{title}</h2>
-            <span
-              className={
-                vigente
-                  ? 'rounded bg-viamar-500 px-2 py-0.5 text-label-sm font-semibold text-white'
-                  : 'rounded bg-app-surface-alt px-2 py-0.5 text-label-sm text-ink-secondary'
-              }
-            >
-              {badge}
-            </span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-headline-md text-ink">{title}</h2>
+            <Pill tone={vigente ? 'brand' : 'neutral'}>{badge}</Pill>
           </div>
-          <p className="text-body-sm text-ink-secondary">{hint}</p>
+          <p className="mt-0.5 text-body-sm text-ink-secondary">{hint}</p>
         </div>
-        <Button variant="outlined" className="h-8 text-label-md" onClick={onApply}>
+        <Button size="sm" variant="secondary" onClick={onApply}>
           Usar
         </Button>
       </div>
-      <p className="text-label-sm uppercase text-ink-secondary">{primaryLabel}</p>
-      <p className="text-headline-lg text-viamar-700">{usd(primary)}</p>
-      <p className="text-body-sm text-ink-secondary">{secondary}</p>
-      <p className="text-label-sm uppercase text-viamar-800">Vigencia {vigencia}</p>
+
+      <div className="mt-1">
+        <p className="text-body-xs text-ink-tertiary">{primaryLabel}</p>
+        <p className="text-metric-lg tabular-nums text-ink">{usd(primary)}</p>
+        <p className="mt-0.5 text-body-sm text-ink-secondary">{secondary}</p>
+      </div>
+
+      <p className="mt-auto pt-1 text-label-md text-ink-tertiary">Vigencia {vigencia}</p>
     </article>
   )
 }

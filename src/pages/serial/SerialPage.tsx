@@ -9,6 +9,7 @@ import { normalizeSerial } from '../../domain/serial'
 import { coberturaMes } from '../../domain/warranty/engine'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { humanizeEstado } from '../../domain/estados'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Timeline } from '../../components/ui/Timeline'
 import { isBatteryVisible } from '../../hooks/useVisibleBatteries'
@@ -130,7 +131,7 @@ export function SerialPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded border border-app-border bg-white p-4 shadow-panel lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 surface p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <nav className="flex flex-wrap items-center gap-1 text-label-sm text-ink-secondary">
             <Link className="hover:text-viamar-700" to="/">
@@ -174,7 +175,7 @@ export function SerialPage() {
         </div>
       </div>
 
-      <section className="rounded border border-app-border bg-white p-5 shadow-panel">
+      <section className="surface p-5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded bg-viamar-500 px-2 py-0.5 text-label-sm uppercase tracking-widest text-white">
             {marca?.nombre ?? '—'}
@@ -317,8 +318,8 @@ export function SerialPage() {
           title="Unidad sustituta"
           badge={
             honra ? (
-              <span className="rounded-sm bg-viamar-100 px-2 py-0.5 text-label-sm uppercase text-viamar-800">
-                Honra {honra.estado}
+              <span className="rounded-sm bg-viamar-50 px-2 py-0.5 text-label-md text-viamar-800 ring-1 ring-inset ring-viamar-200">
+                Honra {humanizeEstado(honra.estado)}
               </span>
             ) : null
           }
@@ -347,7 +348,7 @@ export function SerialPage() {
       </div>
 
       {honra && bateria.serialReemplazadoPor ? (
-        <div className="flex flex-col items-start justify-between gap-3 rounded border border-app-border bg-white p-4 shadow-panel md:flex-row md:items-center">
+        <div className="flex flex-col items-start justify-between gap-3 surface p-4 md:flex-row md:items-center">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-viamar-100 text-viamar-700">
               <ArrowLeftRight size={22} />
@@ -384,7 +385,7 @@ export function SerialPage() {
         </p>
       ) : null}
 
-      <section className="rounded border border-app-border bg-white p-5 shadow-panel">
+      <section className="surface p-5">
         <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-headline-lg text-viamar-800">Trazabilidad cronológica</h2>
@@ -443,7 +444,7 @@ function Spec({ label, value, hint }: { label: string; value: string; hint?: str
 
 function Card({ title, badge, children }: { title: string; badge?: ReactNode; children: ReactNode }) {
   return (
-    <article className="flex flex-col justify-between rounded border border-app-border bg-white p-4 shadow-panel">
+    <article className="surface flex flex-col gap-1.5 p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-label-md">{title}</p>
         {badge}

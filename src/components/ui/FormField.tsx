@@ -7,7 +7,7 @@ type Base = {
 }
 
 const inputClass =
-  'h-10 w-full px-3 rounded border border-app-border-strong bg-white text-body-md'
+  'h-10 w-full px-3 rounded-lg border border-app-border-strong bg-white text-body-md transition-shadow focus:shadow-glow'
 
 export function FormField({
   label,
@@ -52,7 +52,7 @@ export function TextAreaField({
       {label}
       <textarea
         className={cn(
-          'w-full px-3 py-2 rounded border border-app-border-strong bg-white text-body-md min-h-32',
+          'w-full px-3 py-2 rounded-lg border border-app-border-strong bg-white text-body-md min-h-32 transition-shadow focus:shadow-glow',
           className,
         )}
         {...props}

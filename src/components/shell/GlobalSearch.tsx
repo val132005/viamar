@@ -1,11 +1,16 @@
 import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ScanLine } from 'lucide-react'
+import { Command, Search } from 'lucide-react'
 import { isSerialQuery, normalizeSerial } from '../../domain/serial'
 import { searchVisible } from '../../hooks/useVisibleBatteries'
 import { useAuthStore } from '../../stores/authStore'
 
-export function GlobalSearch() {
+/**
+ * Búsqueda global. Conserva el comportamiento directo —escribir un serial y
+ * pulsar Enter abre su ficha— y añade el acceso a la paleta de comandos, que
+ * es donde se resuelven las búsquedas que no son de serial.
+ */
+export function GlobalSearch({ onOpenPalette }: { onOpenPalette?: () => void }) {
   const [q, setQ] = useState('')
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.usuarioActual)
@@ -35,15 +40,37 @@ export function GlobalSearch() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex-1 max-w-xl">
+    <form onSubmit={onSubmit} className="max-w-xl flex-1" role="search">
       <label className="relative block">
-        <ScanLine size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-secondary" />
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-tertiary"
+          aria-hidden="true"
+        />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Escanear o escribir CIB, documento o nombre…"
-          className="h-10 w-full pl-9 pr-3 rounded border border-app-border-strong bg-white font-code-serial text-[13px]"
+          placeholder="Buscar CIB, documento o cliente…"
+          aria-label="Búsqueda global"
+          className="h-control-md w-full rounded-full border border-line bg-surface-subtle pl-10 pr-16 text-body-sm text-ink placeholder:font-sans placeholder:text-ink-tertiary transition-colors duration-fast hover:border-line-strong focus:border-viamar-400 focus:bg-white focus:shadow-focus focus:outline-none"
         />
+        {/* Pista de atajo: aparece solo cuando el campo está vacío. */}
+        {!q ? (
+          onOpenPalette ? (
+            <button
+              type="button"
+              onClick={onOpenPalette}
+              title="Abrir paleta de comandos"
+              className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-full border border-line bg-white px-2 py-1 text-label-sm text-ink-tertiary transition-colors duration-fast hover:border-line-brand hover:text-ink lg:flex"
+            >
+              <Command size={11} strokeWidth={2.4} aria-hidden="true" />K
+            </button>
+          ) : (
+            <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-full border border-line px-2 py-0.5 text-label-sm text-ink-tertiary lg:block">
+              Enter
+            </kbd>
+          )
+        ) : null}
       </label>
     </form>
   )

@@ -1,11 +1,27 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ClipboardList, Plus } from 'lucide-react'
-import { DataTable } from '../../components/ui/DataTable'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Info,
+  Plus,
+  Stethoscope,
+} from 'lucide-react'
+import { DataTable, CellStack } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { FormField } from '../../components/ui/FormField'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { MetricGrid } from '../../components/ui/Workspace'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { PageTabs } from '../../components/ui/PageTabs'
+import { Pill } from '../../components/ui/Pill'
+import { estadoTone, humanizeEstado } from '../../domain/estados'
+import { ProcessSteps, ProgressBar } from '../../components/ui/ProcessSteps'
+import { SerialCell } from '../../components/ui/SerialCell'
 import { formatDate, iso } from '../../domain/dates'
 import { sugerirDiagnostico } from '../../domain/diagnosis'
 import type { ChequeoEstado } from '../../domain/entities'
@@ -16,91 +32,213 @@ import { useChargingStore } from '../../stores/chargingStore'
 import { useAuthStore } from '../../stores/authStore'
 import { withHistory } from '../../stores/historyStore'
 import { accountById } from '../../seed/demoAccounts'
+import { cn } from '../../lib/cn'
 
-const ESTADOS: Array<'TODOS' | ChequeoEstado> = [
-  'TODOS',
-  'PENDIENTE',
-  'EN_PROCESO',
-  'FINALIZADA',
-  'CANCELADA',
-  'BORRADOR',
-]
+/** Etapas por las que pasa una solicitud, en orden. */
+const FLUJO: ChequeoEstado[] = ['BORRADOR', 'PENDIENTE', 'EN_PROCESO', 'FINALIZADA']
 
-function progreso(s: { lineas: Array<{ accionTomada?: string }> }): string {
-  const done = s.lineas.filter((l) => l.accionTomada).length
-  return `${done}/${s.lineas.length}`
+function dictaminadasDe(s: { lineas: Array<{ accionTomada?: string }> }): number {
+  return s.lineas.filter((l) => l.accionTomada).length
 }
 
 export function InspectionListPage() {
   const solicitudes = useInspectionStore((s) => s.solicitudes)
   const dealers = useDistributorStore((s) => s.dealers)
-  const [filtro, setFiltro] = useState<(typeof ESTADOS)[number]>('TODOS')
+  const [filtro, setFiltro] = useState<'TODOS' | ChequeoEstado>('TODOS')
+  const [q, setQ] = useState('')
 
-  const rows = useMemo(
-    () => (filtro === 'TODOS' ? solicitudes : solicitudes.filter((s) => s.estado === filtro)),
-    [solicitudes, filtro],
+  const conteos = useMemo(() => {
+    const map: Record<string, number> = { TODOS: solicitudes.length, CANCELADA: 0 }
+    for (const e of [...FLUJO, 'CANCELADA' as ChequeoEstado]) {
+      map[e] = solicitudes.filter((s) => s.estado === e).length
+    }
+    return map
+  }, [solicitudes])
+
+  const rows = useMemo(() => {
+    const base = filtro === 'TODOS' ? solicitudes : solicitudes.filter((s) => s.estado === filtro)
+    const needle = q.trim().toUpperCase()
+    if (!needle) return base
+    return base.filter((s) => {
+      const dealer = dealers.find((d) => d.id === s.dealerId)?.nombre ?? ''
+      return s.numero.toUpperCase().includes(needle) || dealer.toUpperCase().includes(needle)
+    })
+  }, [solicitudes, filtro, q, dealers])
+
+  const abiertas = (conteos.PENDIENTE ?? 0) + (conteos.EN_PROCESO ?? 0)
+
+  /* Trabajo real que queda por delante: líneas sin dictamen en las solicitudes
+     que siguen abiertas. Es la cifra que dice cuánto falta, no cuántas
+     solicitudes hay. */
+  const lineasPendientes = useMemo(
+    () =>
+      solicitudes
+        .filter((s) => s.estado === 'PENDIENTE' || s.estado === 'EN_PROCESO')
+        .reduce((acc, s) => acc + (s.lineas.length - dictaminadasDe(s)), 0),
+    [solicitudes],
   )
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-headline-lg text-viamar-800">Gestión técnica</h1>
-        <Link to="/gestion-tecnica/nueva">
-          <Button>
-            <Plus size={16} /> Nueva solicitud
-          </Button>
-        </Link>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {ESTADOS.map((e) => (
-          <button
-            key={e}
-            type="button"
-            onClick={() => setFiltro(e)}
-            className={
-              filtro === e
-                ? 'rounded bg-viamar-500 px-3 py-1.5 text-label-md font-semibold text-white'
-                : 'rounded border border-app-border-strong bg-white px-3 py-1.5 text-label-md text-ink-secondary hover:text-ink'
-            }
-          >
-            {e === 'TODOS' ? `Todos (${solicitudes.length})` : e}
-          </button>
-        ))}
-      </div>
-      {rows.length === 0 ? (
+    <div className="page-fill">
+      <PageHeader
+        title="Gestión técnica"
+        description="Solicitudes de chequeo en sitio: cada visita dictamina las baterías del distribuidor."
+        actions={
+          <Link to="/gestion-tecnica/nueva">
+            <Button leadingIcon={<Plus size={15} />}>Nueva solicitud</Button>
+          </Link>
+        }
+        tabs={
+          <PageTabs
+            active={filtro}
+            onChange={(id) => setFiltro(id as 'TODOS' | ChequeoEstado)}
+            tabs={[
+              { id: 'TODOS', label: 'Todas', count: conteos.TODOS ?? 0 },
+              ...FLUJO.map((estado) => ({
+                id: estado,
+                label: humanizeEstado(estado),
+                count: conteos[estado] ?? 0,
+                tone: estado === 'PENDIENTE' ? ('danger' as const) : ('default' as const),
+              })),
+            ]}
+          />
+        }
+      />
+
+      <MetricGrid columns={4}>
+        <MetricCard
+          label="Solicitudes abiertas"
+          value={abiertas}
+          icon={ClipboardList}
+          tone="warn"
+          filled={abiertas > 0}
+          context="Pendientes o en proceso"
+        />
+        <MetricCard
+          label="Sin asignar"
+          value={conteos.PENDIENTE ?? 0}
+          icon={Clock}
+          tone="danger"
+          filled={(conteos.PENDIENTE ?? 0) > 0}
+          context="Esperan visita técnica"
+        />
+        <MetricCard
+          label="Líneas por dictaminar"
+          value={lineasPendientes}
+          icon={Stethoscope}
+          tone="accent"
+          filled={lineasPendientes > 0}
+          context="Baterías sin resolución en visitas abiertas"
+        />
+        <MetricCard
+          label="Finalizadas"
+          value={conteos.FINALIZADA ?? 0}
+          icon={CheckCircle2}
+          tone="ok"
+          filled={(conteos.FINALIZADA ?? 0) > 0}
+          context={
+            conteos.TODOS
+              ? `${Math.round(((conteos.FINALIZADA ?? 0) / conteos.TODOS) * 100)}% del total`
+              : undefined
+          }
+        />
+      </MetricGrid>
+
+      {solicitudes.length === 0 ? (
         <EmptyState
+          framed
           icon={ClipboardList}
           title="Sin solicitudes"
-          description={
-            filtro === 'TODOS'
-              ? 'Aún no hay solicitudes de chequeo. Crea la primera.'
-              : `No hay solicitudes en estado ${filtro}.`
+          description="Aún no hay solicitudes de chequeo registradas."
+          action={
+            <Link to="/gestion-tecnica/nueva">
+              <Button leadingIcon={<Plus size={15} />}>Crear la primera</Button>
+            </Link>
           }
         />
       ) : (
         <DataTable
+          title="Ejecución técnica"
+          icon={<Stethoscope size={15} />}
+          search={{ value: q, onChange: setQ, placeholder: 'Solicitud o dealer…' }}
           columns={[
             {
               key: 'numero',
               header: 'Solicitud',
+              primary: true,
+              sortable: true,
+              width: '150px',
               render: (s) => (
-                <Link className="text-viamar-700" to={`/gestion-tecnica/${s.id}`}>
+                <Link
+                  className="text-viamar-700 underline-offset-2 transition-colors duration-fast hover:text-viamar-500 hover:underline"
+                  to={`/gestion-tecnica/${s.id}`}
+                >
                   {s.numero}
                 </Link>
               ),
             },
             {
               key: 'dealer',
-              header: 'Dealer',
-              render: (s) => dealers.find((d) => d.id === s.dealerId)?.nombre ?? s.dealerId,
+              header: 'Distribuidor',
+              sortable: true,
+              sortValue: (s) => dealers.find((d) => d.id === s.dealerId)?.nombre ?? s.dealerId,
+              render: (s) => {
+                const dealer = dealers.find((d) => d.id === s.dealerId)
+                return <CellStack primary={dealer?.nombre ?? s.dealerId} secondary={dealer?.rnc} />
+              },
             },
-            { key: 'estado', header: 'Estado' },
-            { key: 'fecha', header: 'Visita', render: (s) => formatDate(s.fechaVisita) },
-            { key: 'progreso', header: 'Progreso', render: (s) => progreso(s) },
-            { key: 'lineas', header: 'Líneas', render: (s) => String(s.lineas.length) },
+            {
+              key: 'estado',
+              header: 'Estado',
+              width: '130px',
+              sortable: true,
+              render: (s) => (
+                <Pill tone={estadoTone(s.estado)} dot>
+                  {humanizeEstado(s.estado)}
+                </Pill>
+              ),
+            },
+            {
+              key: 'progreso',
+              header: 'Dictamen',
+              width: '170px',
+              sortable: true,
+              sortValue: (s) => dictaminadasDe(s) / Math.max(1, s.lineas.length),
+              render: (s) => <ProgressBar done={dictaminadasDe(s)} total={s.lineas.length} />,
+            },
+            {
+              key: 'fecha',
+              header: 'Visita',
+              align: 'right',
+              width: '120px',
+              sortable: true,
+              sortValue: (s) => s.fechaVisita,
+              render: (s) => (
+                <span className="whitespace-nowrap text-body-sm">{formatDate(s.fechaVisita)}</span>
+              ),
+            },
           ]}
           rows={rows}
           rowKey={(s) => s.id}
+          rowTone={(s) => (s.estado === 'PENDIENTE' ? 'warn' : 'default')}
+          emptyTitle="Sin coincidencias"
+          emptyDescription="Ninguna solicitud coincide con la etapa y la búsqueda actuales."
+          renderMobile={(s) => (
+            <Link to={`/gestion-tecnica/${s.id}`} className="block">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-label-lg text-viamar-700">{s.numero}</span>
+                <Pill tone={estadoTone(s.estado)} dot>
+                  {humanizeEstado(s.estado)}
+                </Pill>
+              </div>
+              <p className="mt-0.5 truncate text-body-sm text-ink-secondary">
+                {dealers.find((d) => d.id === s.dealerId)?.nombre ?? s.dealerId}
+              </p>
+              <div className="mt-1.5">
+                <ProgressBar done={dictaminadasDe(s)} total={s.lineas.length} />
+              </div>
+            </Link>
+          )}
         />
       )}
     </div>
@@ -116,7 +254,23 @@ const DICTAMENES = [
 export function InspectionDetailPage() {
   const { id = '' } = useParams()
   const solicitud = useInspectionStore((s) => s.solicitudes.find((x) => x.id === id))
-  if (!solicitud) return <p>Solicitud no encontrada.</p>
+  if (!solicitud) {
+    return (
+      <EmptyState
+        framed
+        kind="no-results"
+        title="Solicitud no encontrada"
+        description="La solicitud que buscas no existe o fue eliminada."
+        action={
+          <Link to="/gestion-tecnica">
+            <Button variant="secondary" leadingIcon={<ArrowLeft size={15} />}>
+              Volver a gestión técnica
+            </Button>
+          </Link>
+        }
+      />
+    )
+  }
   return <InspectionDetailBody solicitudId={id} />
 }
 
@@ -136,8 +290,13 @@ function InspectionDetailBody({ solicitudId }: { solicitudId: string }) {
   const dictaminadas = solicitud.lineas.filter((l) => l.accionTomada).length
   const todasDictaminadas = solicitud.lineas.length > 0 && dictaminadas === solicitud.lineas.length
   const cerrada = solicitud.estado === 'FINALIZADA'
+  const cancelada = solicitud.estado === 'CANCELADA'
 
-  function editarMedicion(lineaId: string, field: 'voltaje' | 'densidad' | 'capacidadMedida', raw: string) {
+  function editarMedicion(
+    lineaId: string,
+    field: 'voltaje' | 'densidad' | 'capacidadMedida',
+    raw: string,
+  ) {
     const value = Number(raw)
     if (Number.isNaN(value)) return
     const linea = solicitud.lineas.find((l) => l.id === lineaId)
@@ -164,7 +323,11 @@ function InspectionDetailBody({ solicitudId }: { solicitudId: string }) {
     if (diagnostico === 'DESCARGADA') {
       const activo = useChargingStore
         .getState()
-        .procesos.find((p) => p.serial === linea.serial && (p.resultado === 'PENDIENTE' || p.resultado === 'EN_CARGA'))
+        .procesos.find(
+          (p) =>
+            p.serial === linea.serial &&
+            (p.resultado === 'PENDIENTE' || p.resultado === 'EN_CARGA'),
+        )
       withHistory(
         linea.serial,
         'DIAGNOSTICO',
@@ -218,121 +381,188 @@ function InspectionDetailBody({ solicitudId }: { solicitudId: string }) {
     if (!todasDictaminadas || cerrada) return
     patchSolicitud(solicitudId, { estado: 'FINALIZADA' })
     for (const l of solicitud.lineas) {
-      withHistory(l.serial, 'CHEQUEO', `${solicitud.numero} cerrada · ${l.diagnostico}`, () => undefined, {
-        referenciaId: solicitudId,
-        estadoNuevo: l.diagnostico,
-      })
+      withHistory(
+        l.serial,
+        'CHEQUEO',
+        `${solicitud.numero} cerrada · ${l.diagnostico}`,
+        () => undefined,
+        {
+          referenciaId: solicitudId,
+          estadoNuevo: l.diagnostico,
+        },
+      )
     }
   }
 
+  const etapaActual = cancelada
+    ? FLUJO.indexOf('EN_PROCESO')
+    : Math.max(0, FLUJO.indexOf(solicitud.estado as ChequeoEstado))
+
   return (
-    <div className="flex flex-col gap-4">
-      <Link className="text-label-md text-viamar-700" to="/gestion-tecnica">
-        ← Volver a gestión técnica
-      </Link>
-      <section className="rounded border border-app-border bg-white p-5 shadow-panel">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-headline-lg text-viamar-800">{solicitud.numero}</h1>
-          <StatusBadge item={{ id: solicitud.estado, label: solicitud.estado, tone: { bg: '#ECEFF1', border: '#B0BEC5', fg: '#37474F' }, icon: 'pending' }} />
-        </div>
-        <dl className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div><dt className="text-label-sm text-ink-secondary">Dealer</dt><dd className="text-label-md">{dealer?.nombre ?? solicitud.dealerId}</dd></div>
-          <div><dt className="text-label-sm text-ink-secondary">RNC</dt><dd className="text-label-md">{dealer?.rnc ?? '—'}</dd></div>
-          <div><dt className="text-label-sm text-ink-secondary">Centro</dt><dd className="text-label-md">{centro?.nombre ?? solicitud.centroId}</dd></div>
-          <div><dt className="text-label-sm text-ink-secondary">Supervisor</dt><dd className="text-label-md">{accountById(solicitud.supervisorId)?.nombre ?? solicitud.supervisorId}</dd></div>
-          <div><dt className="text-label-sm text-ink-secondary">Vendedor</dt><dd className="text-label-md">{accountById(solicitud.vendedorId)?.nombre ?? solicitud.vendedorId}</dd></div>
-          <div><dt className="text-label-sm text-ink-secondary">Creación</dt><dd className="text-label-md">{formatDate(solicitud.fechaCreacion)}</dd></div>
-          <div><dt className="text-label-sm text-ink-secondary">Visita</dt><dd className="text-label-md">{formatDate(solicitud.fechaVisita)}</dd></div>
-          <div><dt className="text-label-sm text-ink-secondary">Dictamen</dt><dd className="text-label-md">{dictaminadas}/{solicitud.lineas.length} líneas</dd></div>
-        </dl>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-app-border">
-          <span
-            className="block h-full bg-viamar-500"
-            style={{ width: solicitud.lineas.length ? `${(dictaminadas / solicitud.lineas.length) * 100}%` : '0%' }}
+    <div className="flex flex-col gap-4 pb-6">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Gestión técnica', to: '/gestion-tecnica' },
+          { label: solicitud.numero },
+        ]}
+        title={solicitud.numero}
+        chips={
+          <Pill tone={estadoTone(solicitud.estado)} dot>
+            {humanizeEstado(solicitud.estado)}
+          </Pill>
+        }
+        actions={
+          <Button
+            disabled={!todasDictaminadas || cerrada}
+            onClick={cerrar}
+            variant={todasDictaminadas && !cerrada ? 'primary' : 'secondary'}
+          >
+            {cerrada ? 'Solicitud finalizada' : 'Cerrar solicitud'}
+          </Button>
+        }
+      />
+
+      {/* Estado del proceso: en qué punto está la visita y cuánto falta. */}
+      <section className="surface shrink-0 px-4 py-3">
+        <ProcessSteps
+          steps={FLUJO.map((e) => ({ id: e, label: humanizeEstado(e) }))}
+          current={etapaActual}
+          aborted={cancelada}
+        />
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line-subtle pt-3">
+          <div className="min-w-[180px] flex-1">
+            <p className="mb-1 text-body-xs text-ink-tertiary">Líneas dictaminadas</p>
+            <ProgressBar done={dictaminadas} total={solicitud.lineas.length} />
+          </div>
+          <Dato label="Distribuidor" value={dealer?.nombre ?? solicitud.dealerId} />
+          <Dato label="RNC" value={dealer?.rnc ?? '—'} />
+          <Dato label="Centro" value={centro?.nombre ?? solicitud.centroId} />
+          <Dato
+            label="Supervisor"
+            value={accountById(solicitud.supervisorId)?.nombre ?? solicitud.supervisorId}
           />
+          <Dato
+            label="Vendedor"
+            value={accountById(solicitud.vendedorId)?.nombre ?? solicitud.vendedorId}
+          />
+          <Dato label="Visita" value={formatDate(solicitud.fechaVisita)} />
         </div>
-        <p className="mt-3 rounded bg-viamar-50 p-2 text-body-sm text-viamar-800">
-          El diagnóstico técnico NO decide la cobertura económica: la garantía se evalúa aparte con la póliza vigente.
-        </p>
       </section>
 
-      {solicitud.lineas.map((l) => (
-        <div key={l.id} className="rounded border border-app-border bg-white p-4 shadow-panel flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link className="font-code-serial text-viamar-700" to={`/serial/${l.serial}`}>
-              {l.serial}
-            </Link>
-            <StatusBadge catalogId={l.diagnostico} />
-            {l.accionTomada ? (
-              <span className="rounded bg-viamar-100 px-2 py-0.5 text-label-sm text-viamar-800">
-                Dictamen: {l.accionTomada}
-              </span>
-            ) : (
-              <span className="rounded bg-app-surface-alt px-2 py-0.5 text-label-sm text-ink-secondary">
-                Sin dictamen
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <FormField
-              label="Voltaje (V)"
-              type="number"
-              step="0.1"
-              value={l.voltaje}
-              disabled={cerrada}
-              onChange={(e) => editarMedicion(l.id, 'voltaje', e.target.value)}
-            />
-            <FormField
-              label="Densidad (g/cm³)"
-              type="number"
-              step="0.01"
-              value={l.densidad}
-              disabled={cerrada}
-              onChange={(e) => editarMedicion(l.id, 'densidad', e.target.value)}
-            />
-            <FormField
-              label="CCA medido (%)"
-              type="number"
-              step="1"
-              value={l.capacidadMedida}
-              disabled={cerrada}
-              onChange={(e) => editarMedicion(l.id, 'capacidadMedida', e.target.value)}
-            />
-          </div>
-          <p className="text-body-sm text-ink-secondary">
-            Sugerencia automática: <strong className="text-ink">{l.accionSugerida}</strong>
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {DICTAMENES.map((d) => (
-              <Button
-                key={d.diagnostico}
-                variant="outlined"
-                className="h-8 text-label-md"
-                disabled={cerrada}
-                onClick={() => dictaminar(l.id, d.diagnostico, d.accion)}
-              >
-                {d.label}
-              </Button>
-            ))}
-          </div>
-          {procesos.some((p) => p.serial === l.serial && (p.resultado === 'PENDIENTE' || p.resultado === 'EN_CARGA')) ? (
-            <p className="text-body-sm text-ink-secondary">
-              En cola de carga · <Link className="text-viamar-700" to="/carga">ver proceso</Link>
-            </p>
-          ) : null}
-        </div>
-      ))}
+      <aside className="flex shrink-0 items-start gap-2 rounded-md bg-info-soft px-3 py-2 ring-1 ring-inset ring-info-border">
+        <Info size={15} className="mt-0.5 shrink-0 text-info" aria-hidden="true" />
+        <p className="text-body-sm text-info-text">
+          El diagnóstico técnico no decide la cobertura económica: la garantía se evalúa aparte con
+          la póliza vigente.
+        </p>
+      </aside>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button disabled={!todasDictaminadas || cerrada} onClick={cerrar}>
-          {cerrada ? 'Solicitud finalizada' : 'Cerrar solicitud'}
-        </Button>
-        {!todasDictaminadas && !cerrada ? (
-          <p className="text-body-sm text-ink-secondary">
-            Dicta todas las líneas ({dictaminadas}/{solicitud.lineas.length}) para cerrar.
-          </p>
-        ) : null}
-      </div>
+      {/* Una tarjeta por batería: cada línea es una unidad de trabajo con sus
+          mediciones y su dictamen, no una fila de datos. */}
+      <ol className="flex flex-col gap-3">
+        {solicitud.lineas.map((l, i) => {
+          const enCola = procesos.some(
+            (p) =>
+              p.serial === l.serial && (p.resultado === 'PENDIENTE' || p.resultado === 'EN_CARGA'),
+          )
+          return (
+            <li
+              key={l.id}
+              className={cn('surface flex flex-col gap-3 p-4', l.accionTomada && 'bg-surface-subtle')}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-neutral-200 text-label-sm font-bold tabular-nums text-neutral-700">
+                    {i + 1}
+                  </span>
+                  <SerialCell serial={l.serial} />
+                  <StatusBadge catalogId={l.diagnostico} />
+                </div>
+                {l.accionTomada ? (
+                  <Pill tone="ok" dot>
+                    Dictamen: {l.accionTomada}
+                  </Pill>
+                ) : (
+                  <Pill tone="neutral">Sin dictamen</Pill>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <FormField
+                  label="Voltaje (V)"
+                  type="number"
+                  step="0.1"
+                  value={l.voltaje}
+                  disabled={cerrada}
+                  onChange={(e) => editarMedicion(l.id, 'voltaje', e.target.value)}
+                />
+                <FormField
+                  label="Densidad (g/cm³)"
+                  type="number"
+                  step="0.01"
+                  value={l.densidad}
+                  disabled={cerrada}
+                  onChange={(e) => editarMedicion(l.id, 'densidad', e.target.value)}
+                />
+                <FormField
+                  label="CCA medido (%)"
+                  type="number"
+                  step="1"
+                  value={l.capacidadMedida}
+                  disabled={cerrada}
+                  onChange={(e) => editarMedicion(l.id, 'capacidadMedida', e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-subtle pt-3">
+                <p className="text-body-sm text-ink-secondary">
+                  Sugerencia automática:{' '}
+                  <strong className="font-semibold text-ink">{l.accionSugerida}</strong>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {DICTAMENES.map((d) => (
+                    <Button
+                      key={d.diagnostico}
+                      variant={l.accionTomada === d.accion ? 'primary' : 'secondary'}
+                      size="sm"
+                      disabled={cerrada}
+                      onClick={() => dictaminar(l.id, d.diagnostico, d.accion)}
+                    >
+                      {d.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {enCola ? (
+                <p className="text-body-xs text-ink-tertiary">
+                  En cola de carga ·{' '}
+                  <Link className="text-viamar-700 underline-offset-2 hover:underline" to="/carga">
+                    ver proceso
+                  </Link>
+                </p>
+              ) : null}
+            </li>
+          )
+        })}
+      </ol>
+
+      {!todasDictaminadas && !cerrada ? (
+        <p className="text-body-sm text-ink-secondary">
+          Dicta las {solicitud.lineas.length - dictaminadas} líneas restantes para poder cerrar la
+          solicitud.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function Dato({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-body-xs text-ink-tertiary">{label}</p>
+      <p className="truncate text-label-lg text-ink">{value}</p>
     </div>
   )
 }

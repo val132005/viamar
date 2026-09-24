@@ -1,4 +1,10 @@
 import { Link } from 'react-router-dom'
+import { ArrowLeft, CircleCheck, CircleX } from 'lucide-react'
+import { DataTable } from '../../components/ui/DataTable'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Pill, StatusDot } from '../../components/ui/Pill'
+import { Button } from '../../components/ui/Button'
+import { humanizeEstado, vigenciaLabel, vigenciaTone } from '../../domain/estados'
 import { usd } from '../../domain/money'
 import { evaluarHonra } from '../../domain/warranty/engine'
 import { WARRANTY_CASES } from '../../domain/warranty/testCases'
@@ -15,44 +21,100 @@ export function TestCasesPage() {
     return { c, r, ok }
   })
   const passed = rows.filter((x) => x.ok).length
+  const allPassed = passed === rows.length
+
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-headline-lg text-viamar-800">Casos de prueba del motor</h1>
-        <p className="text-body-sm text-ink-secondary">
-          Los mismos {rows.length} casos que Vitest. {passed}/{rows.length} ✅. Cambiar una fórmula no
-          altera honras ya ejecutadas.
-        </p>
-        <Link to="/configuracion/politicas" className="text-label-md text-viamar-700 hover:text-viamar-link-hover">
-          Volver a políticas
-        </Link>
-      </div>
-      <div className="overflow-x-auto bg-white border border-app-border rounded">
-        <table className="w-full text-body-sm">
-          <thead className="bg-app-surface-alt">
-            <tr>
-              <th className="text-left px-3 py-2">Caso</th>
-              <th className="text-left px-3 py-2">Resultado</th>
-              <th className="text-left px-3 py-2">Vigencia</th>
-              <th className="text-left px-3 py-2">Cliente</th>
-              <th className="text-left px-3 py-2">Acredita</th>
-              <th className="text-left px-3 py-2">Vitest</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ c, r, ok }) => (
-              <tr key={c.id} className="border-t border-app-border">
-                <td className="px-3 py-2">{c.nombre}</td>
-                <td className="px-3 py-2">{r.admisible ? 'Admisible' : r.motivoRechazo}</td>
-                <td className="px-3 py-2">{r.decisionVigencia}</td>
-                <td className="px-3 py-2">{usd(r.montoCliente)}</td>
-                <td className="px-3 py-2">{usd(r.montoAcreditar)}</td>
-                <td className="px-3 py-2">{ok ? '✅' : '❌'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="page-fill">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Políticas y fórmulas', to: '/configuracion/politicas' },
+          { label: 'Casos de prueba' },
+        ]}
+        title="Casos de prueba del motor"
+        description="Los mismos casos que ejecuta Vitest. Cambiar una fórmula no altera honras ya ejecutadas."
+        chips={
+          <Pill tone={allPassed ? 'ok' : 'danger'} dot>
+            {passed}/{rows.length} correctos
+          </Pill>
+        }
+        actions={
+          <Link to="/configuracion/politicas">
+            <Button variant="secondary" leadingIcon={<ArrowLeft size={15} />}>
+              Volver a políticas
+            </Button>
+          </Link>
+        }
+      />
+
+      <DataTable
+        density="default"
+        columns={[
+          { key: 'caso', header: 'Caso', primary: true, render: ({ c }) => c.nombre },
+          {
+            key: 'resultado',
+            header: 'Resultado',
+            width: '170px',
+            render: ({ r }) =>
+              r.admisible ? (
+                <span className="inline-flex items-center gap-1.5 text-ink">
+                  <StatusDot tone="ok" />
+                  Admisible
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-ink">
+                  <StatusDot tone="danger" />
+                  {/* El motivo llega como enum del motor; no debe verse crudo. */}
+                  {humanizeEstado(r.motivoRechazo ?? 'No admisible')}
+                </span>
+              ),
+          },
+          {
+            key: 'vigencia',
+            header: 'Vigencia',
+            width: '130px',
+            render: ({ r }) => (
+              <Pill tone={vigenciaTone(r.decisionVigencia)}>
+                {vigenciaLabel(r.decisionVigencia)}
+              </Pill>
+            ),
+          },
+          {
+            key: 'cliente',
+            header: 'Paga cliente',
+            align: 'right',
+            width: '120px',
+            render: ({ r }) => usd(r.montoCliente),
+          },
+          {
+            key: 'acredita',
+            header: 'Acredita',
+            align: 'right',
+            width: '120px',
+            render: ({ r }) => <span className="text-ink">{usd(r.montoAcreditar)}</span>,
+          },
+          {
+            key: 'vitest',
+            header: 'Vitest',
+            align: 'right',
+            width: '90px',
+            render: ({ ok }) =>
+              ok ? (
+                <CircleCheck
+                  size={16}
+                  className="inline text-success"
+                  aria-label="Coincide con Vitest"
+                />
+              ) : (
+                <CircleX size={16} className="inline text-critical" aria-label="No coincide" />
+              ),
+          },
+        ]}
+        rows={rows}
+        rowKey={({ c }) => c.id}
+        rowTone={({ ok }) => (ok ? 'default' : 'danger')}
+        emptyTitle="Sin casos"
+        emptyDescription="El motor no tiene casos de prueba registrados."
+      />
     </div>
   )
 }

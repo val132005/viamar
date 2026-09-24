@@ -4,8 +4,11 @@ import {
   ROLE_LABEL,
   TOGGLE_HONRA_SUPERVISOR,
 } from '../../domain/permissions'
+import { RotateCcw, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { PermissionToggle } from '../../components/ui/PermissionToggle'
 import { Button } from '../../components/ui/Button'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Pill } from '../../components/ui/Pill'
 import { useCan, useMatrix } from '../../hooks/usePermission'
 import { useConfigStore } from '../../stores/configStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -33,89 +36,123 @@ export function AdminPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-headline-lg text-viamar-800">Administración</h1>
-          <p className="text-body-sm text-ink-secondary">
-            Matriz editable en vivo. El interruptor ⚙️ de «Ejecutar honra» para el supervisor de
-            gestión técnica viene apagado: es una decisión de negocio pendiente y se puede cambiar
-            aquí mismo.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {canEdit ? (
-            <Button
-              variant="outlined"
-              onClick={() => {
-                resetMatriz()
-                toast('Matriz restaurada a los valores de fábrica', 'ok')
-              }}
-            >
-              Restaurar matriz
-            </Button>
-          ) : null}
-          {canReset ? (
-            <Button variant="danger" onClick={() => void onReset()}>
-              Restablecer demo
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="overflow-x-auto bg-white border border-app-border rounded">
-        <table className="w-full text-body-sm">
-          <thead className="bg-app-surface-alt">
-            <tr>
-              <th className="text-left px-3 py-2 border-b border-app-border-strong min-w-52">
-                Capacidad
-              </th>
-              {ROLES.map((role) => (
-                <th
-                  key={role}
-                  className="px-2 py-2 border-b border-app-border-strong text-label-sm text-ink-secondary"
-                >
-                  {ROLE_LABEL[role]}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {CAPABILITIES.map((cap) => (
-              <tr
-                key={cap}
-                className={cn(
-                  'hover:bg-viamar-50',
-                  cap === TOGGLE_HONRA_SUPERVISOR.capability && 'bg-viamar-50/60',
-                )}
+    <div className="page-fill">
+      <PageHeader
+        title="Administración"
+        description="Matriz de permisos editable en vivo: cada fila es una capacidad del sistema y cada columna un rol. «Ejecutar honra» para el supervisor de gestión técnica viene apagado a propósito — es una decisión de negocio pendiente."
+        actions={
+          <>
+            {canEdit ? (
+              <Button
+                variant="secondary"
+                leadingIcon={<RotateCcw size={15} />}
+                onClick={() => {
+                  resetMatriz()
+                  toast('Matriz restaurada a los valores de fábrica', 'ok')
+                }}
               >
-                <td className="px-3 py-2 border-b border-app-border">
-                  {CAPABILITY_LABEL[cap]}
-                  {cap === TOGGLE_HONRA_SUPERVISOR.capability ? (
-                    <span className="ml-2 text-label-sm text-viamar-700">⚙️ demo</span>
-                  ) : null}
-                </td>
+                Restaurar matriz
+              </Button>
+            ) : null}
+            {canReset ? (
+              <Button
+                variant="danger-quiet"
+                leadingIcon={<TriangleAlert size={15} />}
+                onClick={() => void onReset()}
+                title="Restaura los datos de demostración a su estado inicial"
+              >
+                Restablecer demo
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+
+      <section className="surface flex min-h-0 flex-1 flex-col overflow-hidden">
+        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line px-3.5 py-2.5">
+          <h2 className="flex items-center gap-2 text-headline-md text-ink">
+            <ShieldCheck size={15} className="text-ink-tertiary" aria-hidden="true" />
+            Matriz de permisos
+          </h2>
+          <span className="text-body-xs text-ink-tertiary">
+            {CAPABILITIES.length} capacidades × {ROLES.length} roles
+          </span>
+          {!canEdit ? (
+            <Pill tone="neutral" className="ml-auto">
+              Solo lectura
+            </Pill>
+          ) : null}
+        </header>
+
+        <div className="scroll-slim min-h-0 flex-1 overflow-auto">
+          <table className="w-full border-separate border-spacing-0 text-body-sm">
+            <thead>
+              <tr>
+                {/* La capacidad se ancla a la izquierda: al desplazar en
+                    horizontal para alcanzar un rol, hay que seguir sabiendo
+                    qué permiso se está concediendo. */}
+                <th
+                  scope="col"
+                  className="sticky left-0 top-0 z-20 min-w-56 border-b border-line bg-surface-subtle px-3.5 py-2 text-left text-label-md font-semibold text-ink-secondary"
+                >
+                  Capacidad
+                </th>
                 {ROLES.map((role) => (
-                  <td key={role} className="px-2 py-2 border-b border-app-border text-center">
-                    <PermissionToggle
-                      checked={matrix[role][cap]}
-                      label={`${CAPABILITY_LABEL[cap]} · ${ROLE_LABEL[role]}`}
-                      disabled={!canEdit}
-                      hint={
-                        role === TOGGLE_HONRA_SUPERVISOR.role &&
-                        cap === TOGGLE_HONRA_SUPERVISOR.capability
-                          ? 'Apagado por defecto: hoy la honra la ejecuta Ventas / Garantías. Encenderlo habilita también al supervisor de gestión técnica.'
-                          : undefined
-                      }
-                      onChange={() => toggle(role, cap)}
-                    />
-                  </td>
+                  <th
+                    key={role}
+                    scope="col"
+                    className="sticky top-0 z-10 border-b border-line bg-surface-subtle px-2 py-2 text-center text-label-md font-semibold text-ink-secondary"
+                  >
+                    {ROLE_LABEL[role]}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {CAPABILITIES.map((cap) => {
+                const destacada = cap === TOGGLE_HONRA_SUPERVISOR.capability
+                return (
+                  <tr key={cap} className="group/row">
+                    <th
+                      scope="row"
+                      className={cn(
+                        'sticky left-0 z-10 border-b border-line-subtle px-3.5 py-2 text-left font-normal',
+                        destacada ? 'bg-viamar-50/70' : 'bg-white group-hover/row:bg-surface-hover',
+                      )}
+                    >
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-label-lg text-ink">{CAPABILITY_LABEL[cap]}</span>
+                        {destacada ? <Pill tone="brand">Decisión pendiente</Pill> : null}
+                      </span>
+                    </th>
+                    {ROLES.map((role) => (
+                      <td
+                        key={role}
+                        className={cn(
+                          'border-b border-line-subtle px-2 py-2 text-center',
+                          destacada ? 'bg-viamar-50/70' : 'group-hover/row:bg-surface-hover',
+                        )}
+                      >
+                        <PermissionToggle
+                          checked={matrix[role][cap]}
+                          label={`${CAPABILITY_LABEL[cap]} · ${ROLE_LABEL[role]}`}
+                          disabled={!canEdit}
+                          hint={
+                            role === TOGGLE_HONRA_SUPERVISOR.role && destacada
+                              ? 'Apagado por defecto: hoy la honra la ejecuta Ventas / Garantías. Encenderlo habilita también al supervisor de gestión técnica.'
+                              : undefined
+                          }
+                          onChange={() => toggle(role, cap)}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   )
 }

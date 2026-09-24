@@ -1,8 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
-import { DataTable } from '../../components/ui/DataTable'
+import { DataTable, CellStack, type RowAction } from '../../components/ui/DataTable'
 import { FormField, SelectField } from '../../components/ui/FormField'
 import { Modal } from '../../components/ui/Modal'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { PageTabs } from '../../components/ui/PageTabs'
 import { usd } from '../../domain/money'
 import type {
   Articulo,
@@ -21,46 +24,31 @@ import { useDistributorStore } from '../../stores/distributorStore'
 import { useInspectionStore } from '../../stores/inspectionStore'
 import { useUiStore } from '../../stores/uiStore'
 
-function Section({
-  title,
-  description,
-  onNew,
-  newLabel,
-  children,
-}: {
-  title: string
-  description: string
-  onNew: () => void
-  newLabel: string
-  children: ReactNode
-}) {
-  return (
-    <section className="bg-white border border-app-border rounded p-4 flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-headline-sm text-viamar-800">{title}</h2>
-          <p className="text-body-sm text-ink-secondary">{description}</p>
-        </div>
-        <Button variant="outlined" className="h-9" onClick={onNew}>
-          {newLabel}
-        </Button>
-      </div>
-      {children}
-    </section>
-  )
-}
+type SeccionId = 'articulos' | 'marcas' | 'dealers' | 'centros' | 'tipos'
 
-function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
-  return (
-    <div className="flex gap-1">
-      <Button variant="outlined" className="h-8 text-label-md" onClick={onEdit}>
-        Editar
-      </Button>
-      <Button variant="outlined" className="h-8 text-label-md" onClick={onDelete}>
-        Eliminar
-      </Button>
-    </div>
-  )
+/**
+ * Navegación entre maestros. Antes las seis tablas se apilaban en un scroll
+ * único; separarlas deja cada una a pantalla completa y evita que el usuario
+ * tenga que recorrer la página entera para llegar a la última.
+ */
+const SECCIONES: Array<{ id: SeccionId; label: string }> = [
+  { id: 'articulos', label: 'Artículos' },
+  { id: 'marcas', label: 'Marcas' },
+  { id: 'dealers', label: 'Distribuidores' },
+  { id: 'centros', label: 'Centros y estaciones' },
+  { id: 'tipos', label: 'Tipos de uso' },
+]
+
+/**
+ * Acciones de fila. Se devuelven como descriptores para que la tabla las
+ * muestre al pasar por encima: mantenerlas siempre visibles llenaba la vista
+ * de botones y daba a «Eliminar» el mismo peso que a «Editar».
+ */
+function rowActions<T>(onEdit: (row: T) => void, onDelete: (row: T) => void): RowAction<T>[] {
+  return [
+    { id: 'edit', label: 'Editar', icon: <Pencil size={14} />, onClick: onEdit },
+    { id: 'delete', label: 'Eliminar', icon: <Trash2 size={14} />, onClick: onDelete, tone: 'danger' },
+  ]
 }
 
 function slug(raw: string): string {
@@ -113,6 +101,8 @@ export function MaestrosPage() {
   const [centroForm, setCentroForm] = useState<null | { editing: CentroCarga | null }>(null)
   const [estForm, setEstForm] = useState<null | { editing: Estacion | null }>(null)
   const [tipoForm, setTipoForm] = useState<null | { editing: TipoUso | null }>(null)
+  const [seccion, setSeccion] = useState<SeccionId>('articulos')
+  const [q, setQ] = useState('')
 
   async function confirmDelete(title: string, message: string): Promise<boolean> {
     return ask({ title, message, confirmLabel: 'Eliminar', danger: true })
@@ -203,196 +193,289 @@ export function MaestrosPage() {
     toast('Tipo de uso eliminado', 'ok')
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-headline-lg text-viamar-800">Maestros</h1>
+  const counts: Record<SeccionId, number> = {
+    articulos: articulos.length,
+    marcas: marcas.length,
+    dealers: dealers.length,
+    centros: centros.length,
+    tipos: tipos.length,
+  }
 
-      <Section
-        title="Artículos"
-        description={`${articulos.length} artículos · precio en USD · política asignada.`}
-        onNew={() => setArtForm({ editing: null })}
-        newLabel="Nuevo artículo"
-      >
+  const needle = q.trim().toLowerCase()
+  const match = (...fields: Array<string | undefined>) =>
+    !needle || fields.some((f) => (f ?? '').toLowerCase().includes(needle))
+
+  /* Centros y estaciones son dos maestros en la misma pestaña, así que ahí el
+     alta se queda en la cabecera de cada tabla y no hay una única acción. */
+  const ALTA: Partial<Record<SeccionId, { label: string; onClick: () => void }>> = {
+    articulos: { label: 'Nuevo artículo', onClick: () => setArtForm({ editing: null }) },
+    marcas: { label: 'Nueva marca', onClick: () => setMarcaForm({ editing: null }) },
+    dealers: { label: 'Nuevo distribuidor', onClick: () => setDealerForm({ editing: null }) },
+    tipos: { label: 'Nuevo tipo de uso', onClick: () => setTipoForm({ editing: null }) },
+  }
+  const alta = ALTA[seccion]
+  const altaDeSeccion = alta ? (
+    <Button leadingIcon={<Plus size={15} />} onClick={alta.onClick}>
+      {alta.label}
+    </Button>
+  ) : null
+
+  return (
+    <div className="page-fill">
+      <PageHeader
+        title="Maestros"
+        description="Catálogos que alimentan el resto de la operación: artículos, marcas, distribuidores, centros y tipos de uso."
+        tabs={
+          <PageTabs
+            active={seccion}
+            onChange={(id) => setSeccion(id as SeccionId)}
+            tabs={SECCIONES.map((s) => ({ id: s.id, label: s.label, count: counts[s.id] }))}
+            /* El alta vive junto a las pestañas porque depende de cuál esté
+               activa: es «nuevo …de esto que estoy viendo». */
+            action={altaDeSeccion}
+          />
+        }
+      />
+
+      {seccion === 'articulos' ? (
         <DataTable
+          title="Artículos"
+          density="compact"
+          search={{ value: q, onChange: setQ, placeholder: 'Código, descripción o marca…' }}
           columns={[
-            { key: 'codigo', header: 'Código' },
-            { key: 'descripcion', header: 'Descripción' },
+            {
+              key: 'codigo',
+              header: 'Artículo',
+              primary: true,
+              sortable: true,
+              render: (a: Articulo) => <CellStack primary={a.codigo} secondary={a.descripcion} />,
+            },
             {
               key: 'marca',
               header: 'Marca',
+              sortable: true,
+              width: '140px',
+              sortValue: (a: Articulo) => marcas.find((m) => m.id === a.marcaId)?.nombre ?? a.marcaId,
               render: (a: Articulo) => marcas.find((m) => m.id === a.marcaId)?.nombre ?? a.marcaId,
             },
-            { key: 'cap', header: 'Cap. (CCA)', render: (a: Articulo) => String(a.capacidadNominal) },
-            { key: 'precio', header: 'USD', render: (a: Articulo) => usd(a.precioVigente) },
+            {
+              key: 'cap',
+              header: 'Cap. (CCA)',
+              align: 'right',
+              width: '110px',
+              sortable: true,
+              sortValue: (a: Articulo) => a.capacidadNominal,
+              render: (a: Articulo) => String(a.capacidadNominal),
+            },
+            {
+              key: 'precio',
+              header: 'Precio',
+              align: 'right',
+              width: '110px',
+              sortable: true,
+              sortValue: (a: Articulo) => a.precioVigente,
+              render: (a: Articulo) => <span className="text-ink">{usd(a.precioVigente)}</span>,
+            },
             {
               key: 'politica',
               header: 'Política',
+              secondary: true,
+              sortable: true,
+              sortValue: (a: Articulo) => a.politicaId,
               render: (a: Articulo) => {
-                const p = politicas.find(
-                  (x) => x.id === a.politicaId && x.estado === 'ACTIVA',
-                )
+                const p = politicas.find((x) => x.id === a.politicaId && x.estado === 'ACTIVA')
                 return p ? `${p.nombre} v${p.version}` : a.politicaId
               },
             },
-            {
-              key: 'acc',
-              header: '',
-              render: (a: Articulo) => (
-                <RowActions
-                  onEdit={() => setArtForm({ editing: a })}
-                  onDelete={() => void deleteArticulo(a)}
-                />
-              ),
-            },
           ]}
-          rows={articulos}
+          rows={articulos.filter((a) =>
+            match(a.codigo, a.descripcion, marcas.find((m) => m.id === a.marcaId)?.nombre),
+          )}
           rowKey={(a) => a.id}
+          rowActions={rowActions<Articulo>(
+            (a) => setArtForm({ editing: a }),
+            (a) => void deleteArticulo(a),
+          )}
+          emptyTitle="Sin artículos"
+          emptyDescription="No hay artículos que coincidan con la búsqueda."
         />
-      </Section>
+      ) : null}
 
-      <Section
-        title="Marcas"
-        description={`${marcas.length} marcas de batería.`}
-        onNew={() => setMarcaForm({ editing: null })}
-        newLabel="Nueva marca"
-      >
+      {seccion === 'marcas' ? (
         <DataTable
+          title="Marcas"
+          density="compact"
+          search={{ value: q, onChange: setQ, placeholder: 'Nombre de marca…' }}
           columns={[
-            { key: 'nombre', header: 'Nombre' },
-            { key: 'id', header: 'ID' },
+            { key: 'nombre', header: 'Nombre', primary: true, sortable: true },
             {
-              key: 'acc',
-              header: '',
-              render: (m: Marca) => (
-                <RowActions
-                  onEdit={() => setMarcaForm({ editing: m })}
-                  onDelete={() => void deleteMarca(m)}
-                />
-              ),
+              key: 'articulos',
+              header: 'Artículos',
+              align: 'right',
+              width: '120px',
+              sortable: true,
+              sortValue: (m: Marca) => articulos.filter((a) => a.marcaId === m.id).length,
+              render: (m: Marca) => String(articulos.filter((a) => a.marcaId === m.id).length),
             },
+            { key: 'id', header: 'Identificador', secondary: true, sortable: true },
           ]}
-          rows={marcas}
+          rows={marcas.filter((m) => match(m.nombre, m.id))}
           rowKey={(m) => m.id}
+          rowActions={rowActions<Marca>(
+            (m) => setMarcaForm({ editing: m }),
+            (m) => void deleteMarca(m),
+          )}
+          emptyTitle="Sin marcas"
+          emptyDescription="No hay marcas que coincidan con la búsqueda."
         />
-      </Section>
+      ) : null}
 
-      <Section
-        title="Dealers"
-        description={`${dealers.length} distribuidores.`}
-        onNew={() => setDealerForm({ editing: null })}
-        newLabel="Nuevo dealer"
-      >
+      {seccion === 'dealers' ? (
         <DataTable
+          title="Distribuidores"
+          density="compact"
+          search={{ value: q, onChange: setQ, placeholder: 'Nombre, RNC o localidad…' }}
           columns={[
-            { key: 'nombre', header: 'Nombre' },
-            { key: 'localidad', header: 'Localidad' },
-            { key: 'rnc', header: 'RNC' },
-            { key: 'perfil', header: 'Perfil' },
             {
-              key: 'acc',
-              header: '',
-              render: (d: Dealer) => (
-                <RowActions
-                  onEdit={() => setDealerForm({ editing: d })}
-                  onDelete={() => void deleteDealer(d)}
-                />
-              ),
+              key: 'nombre',
+              header: 'Distribuidor',
+              primary: true,
+              sortable: true,
+              render: (d: Dealer) => <CellStack primary={d.nombre} secondary={d.rnc} />,
             },
+            { key: 'localidad', header: 'Localidad', sortable: true, width: '160px' },
+            {
+              key: 'inventario',
+              header: 'En inventario',
+              align: 'right',
+              width: '130px',
+              sortable: true,
+              sortValue: (d: Dealer) =>
+                Object.values(baterias).filter(
+                  (b) => b.ubicacionTipo === 'DEALER' && b.ubicacionId === d.id,
+                ).length,
+              render: (d: Dealer) =>
+                String(
+                  Object.values(baterias).filter(
+                    (b) => b.ubicacionTipo === 'DEALER' && b.ubicacionId === d.id,
+                  ).length,
+                ),
+            },
+            { key: 'perfil', header: 'Perfil', secondary: true, sortable: true, width: '130px' },
           ]}
-          rows={dealers}
+          rows={dealers.filter((d) => match(d.nombre, d.rnc, d.localidad))}
           rowKey={(d) => d.id}
+          rowActions={rowActions<Dealer>(
+            (d) => setDealerForm({ editing: d }),
+            (d) => void deleteDealer(d),
+          )}
+          emptyTitle="Sin distribuidores"
+          emptyDescription="No hay distribuidores que coincidan con la búsqueda."
         />
-      </Section>
+      ) : null}
 
-      <Section
-        title="Centros de carga"
-        description={`${centros.length} centros · ${estaciones.length} estaciones.`}
-        onNew={() => setCentroForm({ editing: null })}
-        newLabel="Nuevo centro"
-      >
-        <DataTable
-          columns={[
-            { key: 'nombre', header: 'Centro' },
-            { key: 'localidad', header: 'Localidad' },
-            {
-              key: 'est',
-              header: 'Estaciones',
-              render: (c: CentroCarga) =>
-                String(estaciones.filter((e) => e.centroId === c.id).length),
-            },
-            {
-              key: 'acc',
-              header: '',
-              render: (c: CentroCarga) => (
-                <RowActions
-                  onEdit={() => setCentroForm({ editing: c })}
-                  onDelete={() => void deleteCentro(c)}
-                />
-              ),
-            },
-          ]}
-          rows={centros}
-          rowKey={(c) => c.id}
-        />
-        <div className="flex justify-end">
-          <Button variant="outlined" className="h-9" onClick={() => setEstForm({ editing: null })}>
-            Nueva estación
-          </Button>
+      {seccion === 'centros' ? (
+        /* Centro y estación son un maestro y su dependiente: se muestran uno
+           junto al otro para que la relación sea evidente. */
+        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
+          <DataTable
+            title="Centros de carga"
+            actions={
+              <Button size="sm" variant="secondary" leadingIcon={<Plus size={14} />} onClick={() => setCentroForm({ editing: null })}>
+                Nuevo centro
+              </Button>
+            }
+            columns={[
+              { key: 'nombre', header: 'Centro', primary: true, sortable: true },
+              { key: 'localidad', header: 'Localidad', sortable: true },
+              {
+                key: 'est',
+                header: 'Estaciones',
+                align: 'right',
+                width: '110px',
+                sortable: true,
+                sortValue: (c: CentroCarga) => estaciones.filter((e) => e.centroId === c.id).length,
+                render: (c: CentroCarga) =>
+                  String(estaciones.filter((e) => e.centroId === c.id).length),
+              },
+            ]}
+            rows={centros}
+            rowKey={(c) => c.id}
+            rowActions={rowActions<CentroCarga>(
+              (c) => setCentroForm({ editing: c }),
+              (c) => void deleteCentro(c),
+            )}
+            emptyTitle="Sin centros"
+            emptyDescription="Aún no hay centros de carga registrados."
+          />
+
+          <DataTable
+            title="Estaciones"
+            actions={
+              <Button size="sm" variant="secondary" leadingIcon={<Plus size={14} />} onClick={() => setEstForm({ editing: null })}>
+                Nueva estación
+              </Button>
+            }
+            columns={[
+              { key: 'nombre', header: 'Estación', primary: true, sortable: true },
+              {
+                key: 'centro',
+                header: 'Centro',
+                sortable: true,
+                sortValue: (e: Estacion) => centros.find((c) => c.id === e.centroId)?.nombre ?? e.centroId,
+                render: (e: Estacion) =>
+                  centros.find((c) => c.id === e.centroId)?.nombre ?? e.centroId,
+              },
+            ]}
+            rows={estaciones}
+            rowKey={(e) => e.id}
+            rowActions={rowActions<Estacion>(
+              (e) => setEstForm({ editing: e }),
+              (e) => void deleteEstacion(e),
+            )}
+            emptyTitle="Sin estaciones"
+            emptyDescription="Aún no hay estaciones registradas."
+          />
         </div>
-        <DataTable
-          columns={[
-            {
-              key: 'centro',
-              header: 'Centro',
-              render: (e: Estacion) => centros.find((c) => c.id === e.centroId)?.nombre ?? e.centroId,
-            },
-            { key: 'nombre', header: 'Estación' },
-            {
-              key: 'acc',
-              header: '',
-              render: (e: Estacion) => (
-                <RowActions
-                  onEdit={() => setEstForm({ editing: e })}
-                  onDelete={() => void deleteEstacion(e)}
-                />
-              ),
-            },
-          ]}
-          rows={estaciones}
-          rowKey={(e) => e.id}
-        />
-      </Section>
+      ) : null}
 
-      <Section
-        title="Tipos de uso"
-        description={`${tipos.length} tipos de uso.`}
-        onNew={() => setTipoForm({ editing: null })}
-        newLabel="Nuevo tipo de uso"
-      >
+      {seccion === 'tipos' ? (
         <DataTable
+          title="Tipos de uso"
+          density="compact"
+          search={{ value: q, onChange: setQ, placeholder: 'Tipo de uso…' }}
           columns={[
-            { key: 'nombre', header: 'Nombre' },
-            { key: 'id', header: 'ID' },
+            { key: 'nombre', header: 'Nombre', primary: true, sortable: true },
             {
               key: 'veh',
               header: 'Requiere vehículo',
+              width: '170px',
+              sortable: true,
+              sortValue: (t: TipoUso) => (t.requiereVehiculo ? 1 : 0),
               render: (t: TipoUso) => (t.requiereVehiculo ? 'Sí' : 'No'),
             },
             {
-              key: 'acc',
-              header: '',
-              render: (t: TipoUso) => (
-                <RowActions
-                  onEdit={() => setTipoForm({ editing: t })}
-                  onDelete={() => void deleteTipo(t)}
-                />
-              ),
+              key: 'certs',
+              header: 'Certificados',
+              align: 'right',
+              width: '120px',
+              sortable: true,
+              sortValue: (t: TipoUso) => certificados.filter((c) => c.tipoUsoId === t.id).length,
+              render: (t: TipoUso) =>
+                String(certificados.filter((c) => c.tipoUsoId === t.id).length),
             },
+            { key: 'id', header: 'Identificador', secondary: true, sortable: true },
           ]}
-          rows={tipos}
+          rows={tipos.filter((t) => match(t.nombre, t.id))}
           rowKey={(t) => t.id}
+          rowActions={rowActions<TipoUso>(
+            (t) => setTipoForm({ editing: t }),
+            (t) => void deleteTipo(t),
+          )}
+          emptyTitle="Sin tipos de uso"
+          emptyDescription="No hay tipos de uso que coincidan con la búsqueda."
         />
-      </Section>
+      ) : null}
 
       {artForm ? (
         <ArticuloForm

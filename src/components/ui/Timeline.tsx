@@ -19,27 +19,30 @@ export function Timeline({ events, numbered = true }: Props) {
     return <p className="text-body-sm text-ink-secondary">Sin eventos todavía.</p>
   }
   return (
-    <ol className="relative ml-2 pl-8">
-      <span className="absolute left-[11px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-viamar-500 via-viamar-200 to-app-border" />
+    <ol className="relative ml-1.5 pl-7">
+      {/* Hilo continuo: da al historial una lectura de sucesión, no de lista. */}
+      <span aria-hidden="true" className="absolute bottom-3 left-[9px] top-3 w-px bg-line" />
       {events.map((e, i) => (
-        <li key={e.id} className="relative mb-4 last:mb-0">
+        <li key={e.id} className="relative mb-3 last:mb-0">
           {numbered ? (
-            <span className="absolute -left-8 mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-viamar-500 text-[11px] font-bold text-white ring-4 ring-white">
+            <span className="absolute -left-7 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-viamar-500 text-label-sm font-bold tabular-nums text-white ring-4 ring-surface-sunken">
               {i + 1}
             </span>
           ) : (
-            <span className="absolute -left-[23px] mt-2 h-3 w-3 rounded-full bg-viamar-500 ring-4 ring-white" />
+            <span className="absolute -left-[22px] mt-1.5 h-2.5 w-2.5 rounded-full bg-viamar-500 ring-4 ring-surface-sunken" />
           )}
-          <div className="rounded border border-app-border bg-app-surface-alt p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-label-md text-ink">{e.title}</p>
-                {e.origenId ? <StatusBadge catalogId={e.origenId} /> : null}
+          <div className="rounded border border-line bg-white px-3 py-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <p className="text-label-lg text-ink">{e.title}</p>
+                {e.origenId ? <StatusBadge catalogId={e.origenId} variant="quiet" /> : null}
               </div>
-              <p className="text-body-sm text-ink-secondary">{e.date}</p>
+              <p className="shrink-0 text-body-xs text-ink-tertiary">{e.date}</p>
             </div>
-            {e.actor ? <p className="mt-1 text-body-sm text-ink-secondary">Actor: {e.actor}</p> : null}
-            {e.description ? <p className="mt-1 text-body-sm">{e.description}</p> : null}
+            {e.description ? (
+              <p className="mt-0.5 text-body-sm text-ink-secondary">{e.description}</p>
+            ) : null}
+            {e.actor ? <p className="mt-0.5 text-body-xs text-ink-tertiary">{e.actor}</p> : null}
           </div>
         </li>
       ))}

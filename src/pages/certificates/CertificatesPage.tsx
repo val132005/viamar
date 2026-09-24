@@ -1,11 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { FileX2 } from 'lucide-react'
+import { BadgeCheck, BadgePlus, FileX2, Repeat, ShieldCheck } from 'lucide-react'
 import { DataTable } from '../../components/ui/DataTable'
+import { SerialCell } from '../../components/ui/SerialCell'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Button } from '../../components/ui/Button'
-import { FilterBar } from '../../components/ui/FilterBar'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { MetricGrid } from '../../components/ui/Workspace'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { PageTabs } from '../../components/ui/PageTabs'
+import { Pill } from '../../components/ui/Pill'
 import { FormField, SelectField, TextAreaField } from '../../components/ui/FormField'
 import { Modal } from '../../components/ui/Modal'
 import { addMonths, formatDate, iso } from '../../domain/dates'
@@ -47,66 +52,143 @@ export function CertificatesPage() {
       .sort((a, b) => b.fechaVenta.localeCompare(a.fechaVenta))
   }, [certificados, filtro, q])
 
+  /* Los contadores describen el universo completo, no el filtro activo: una
+     pestaña tiene que decir cuántos hay al otro lado antes de pulsarla. */
+  const conteos = useMemo<Record<FiltroEstado, number>>(
+    () => ({
+      todos: certificados.length,
+      E: certificados.filter((c) => c.estado === 'E').length,
+      C: certificados.filter((c) => c.estado === 'C').length,
+      heredado: certificados.filter((c) => Boolean(c.heredadoDe)).length,
+    }),
+    [certificados],
+  )
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-headline-lg text-viamar-800">Certificados</h1>
-        <Button onClick={() => setFormOpen(true)}>Emitir certificado</Button>
-      </div>
-      <FilterBar value={q} onChange={setQ} placeholder="Buscar por serial (p. ej. CIB-908…)">
-        <div className="flex gap-1">
-          {FILTROS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFiltro(f.id)}
-              className={
-                filtro === f.id
-                  ? 'h-10 px-3 rounded text-label-md bg-viamar-500 text-white font-semibold'
-                  : 'h-10 px-3 rounded text-label-md bg-white border border-app-border-strong'
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </FilterBar>
+    <div className="page-fill">
+      <PageHeader
+        title="Certificados"
+        description="Emisión, vigencia y cancelación del certificado digital que acompaña a cada batería vendida."
+        actions={
+          <Button leadingIcon={<BadgePlus size={15} />} onClick={() => setFormOpen(true)}>
+            Emitir certificado
+          </Button>
+        }
+        tabs={
+          <PageTabs
+            active={filtro}
+            onChange={(id) => setFiltro(id as FiltroEstado)}
+            tabs={FILTROS.map((f) => ({
+              id: f.id,
+              label: f.label,
+              count: conteos[f.id],
+              tone: f.id === 'C' ? ('danger' as const) : ('default' as const),
+            }))}
+          />
+        }
+      />
+
+      <MetricGrid columns={4}>
+        <MetricCard
+          label="Certificados emitidos"
+          value={certificados.length}
+          icon={BadgeCheck}
+          tone="brand"
+          context="Histórico completo"
+        />
+        <MetricCard
+          label="CERT-E vigentes"
+          value={conteos.E}
+          icon={ShieldCheck}
+          tone="ok"
+          filled={conteos.E > 0}
+          context={
+            certificados.length
+              ? `${Math.round((conteos.E / certificados.length) * 100)}% del total emitido`
+              : undefined
+          }
+        />
+        <MetricCard
+          label="CERT-C cancelados"
+          value={conteos.C}
+          icon={FileX2}
+          tone="danger"
+          filled={conteos.C > 0}
+          context="Bloquean la honra de su serial"
+        />
+        <MetricCard
+          label="Heredados por honra"
+          value={conteos.heredado}
+          icon={Repeat}
+          tone="accent"
+          filled={conteos.heredado > 0}
+          context="Emitidos al reemplazar una batería"
+        />
+      </MetricGrid>
+
       <DataTable
+        title="Certificados emitidos"
+        icon={<BadgeCheck size={15} />}
+        density="compact"
+        search={{ value: q, onChange: setQ, placeholder: 'Buscar por serial (p. ej. CIB-908…)' }}
         columns={[
           {
             key: 'serial',
             header: 'Serial',
+            primary: true,
+            width: '170px',
+            sortable: true,
             render: (c: Certificado) => (
-              <Link className="font-code-serial text-viamar-700" to={`/certificados/${c.id}`}>
-                {c.serial}
-              </Link>
+              <SerialCell serial={c.serial} to={`/certificados/${c.id}`} />
             ),
           },
           {
             key: 'estado',
             header: 'Estado',
+            width: '170px',
+            sortable: true,
             render: (c: Certificado) => <StatusBadge catalogId={c.estado} />,
           },
           {
             key: 'heredado',
             header: 'Herencia',
-            render: (c: Certificado) => (c.heredadoDe ? 'Heredado por honra' : '—'),
+            width: '160px',
+            render: (c: Certificado) =>
+              c.heredadoDe ? (
+                <Pill tone="info">Heredado por honra</Pill>
+              ) : (
+                <span className="text-ink-disabled">—</span>
+              ),
           },
           {
             key: 'cliente',
             header: 'Cliente',
+            sortable: true,
+            sortValue: (c: Certificado) =>
+              clientes.find((x) => x.id === c.clienteId)?.nombre ?? c.clienteId,
             render: (c: Certificado) =>
               clientes.find((x) => x.id === c.clienteId)?.nombre ?? c.clienteId,
           },
-          { key: 'ncf', header: 'NCF', render: (c: Certificado) => c.facturaNcf },
+          {
+            key: 'ncf',
+            header: 'NCF',
+            width: '140px',
+            secondary: true,
+            render: (c: Certificado) => c.facturaNcf,
+          },
           {
             key: 'venta',
             header: 'Venta',
+            align: 'right',
+            width: '130px',
+            sortable: true,
+            sortValue: (c: Certificado) => c.fechaVenta,
             render: (c: Certificado) => formatDate(c.fechaVenta),
           },
         ]}
         rows={rows}
         rowKey={(c) => c.id}
+        rowTone={(c) => (c.estado === 'C' ? 'danger' : 'default')}
         emptyTitle="Sin certificados"
         emptyDescription="Ningún certificado coincide con el filtro actual."
       />
@@ -333,20 +415,40 @@ export function CertificateDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 max-w-2xl">
-      <Link className="text-body-sm text-viamar-700" to="/certificados">
-        ← Certificados
-      </Link>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-headline-lg text-viamar-800 font-code-serial">{cert.serial}</h1>
-        <StatusBadge catalogId={cert.estado} />
-        {cert.heredadoDe ? (
-          <span className="text-label-sm px-2 py-0.5 rounded-sm border border-viamar-300 bg-viamar-50 text-viamar-700">
-            Heredado por honra
-          </span>
-        ) : null}
-      </div>
-      <div className="bg-white border border-app-border rounded p-4">
+    <div className="flex max-w-3xl flex-col gap-4">
+      <PageHeader
+        breadcrumbs={[{ label: 'Certificados', to: '/certificados' }, { label: cert.serial }]}
+        title={cert.serial}
+        chips={
+          <>
+            <StatusBadge catalogId={cert.estado} />
+            {cert.heredadoDe ? <Pill tone="info">Heredado por honra</Pill> : null}
+          </>
+        }
+        actions={
+          <>
+            <Link to={`/serial/${cert.serial}`}>
+              <Button variant="secondary">Ver ficha del serial</Button>
+            </Link>
+            {cert.estado === 'E' ? (
+              <Button variant="danger" onClick={() => setConfirmOpen(true)}>
+                Cancelar certificado
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+
+      {cert.estado !== 'E' ? (
+        <aside className="flex items-start gap-2 rounded-md bg-critical-soft px-3 py-2 ring-1 ring-inset ring-critical-border">
+          <FileX2 size={15} className="mt-0.5 shrink-0 text-critical" aria-hidden="true" />
+          <p className="text-body-sm text-critical-text">
+            Certificado cancelado: la honra está bloqueada para este serial.
+          </p>
+        </aside>
+      ) : null}
+
+      <div className="surface p-4">
         <dl className="grid grid-cols-2 gap-2 text-body-sm">
           <dt className="text-ink-secondary">Cliente</dt>
           <dd>{cliente?.nombre ?? cert.clienteId}</dd>
@@ -382,20 +484,6 @@ export function CertificateDetailPage() {
           ) : null}
         </dl>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Link className="font-code-serial" to={`/serial/${cert.serial}`}>
-          <Button variant="outlined">Ver ficha del serial</Button>
-        </Link>
-        {cert.estado === 'E' ? (
-          <Button variant="danger" onClick={() => setConfirmOpen(true)}>
-            Cancelar certificado
-          </Button>
-        ) : (
-          <p className="text-body-sm text-ink-secondary self-center">
-            Certificado cancelado: la honra está bloqueada para este serial.
-          </p>
-        )}
-      </div>
       <Modal
         open={confirmOpen}
         title="Cancelar certificado"
@@ -421,3 +509,4 @@ export function CertificateDetailPage() {
     </div>
   )
 }
+

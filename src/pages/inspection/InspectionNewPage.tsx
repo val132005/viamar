@@ -118,7 +118,7 @@ export function InspectionNewPage() {
       </Link>
       <h1 className="text-headline-lg text-viamar-800">Nueva solicitud de chequeo</h1>
 
-      <section className="grid gap-3 rounded border border-app-border bg-white p-4 shadow-panel md:grid-cols-2">
+      <section className="grid gap-3 surface p-4 md:grid-cols-2">
         <SelectField label="Dealer" value={dealerId} onChange={(e) => setDealerId(e.target.value)}>
           {dealers.map((d) => (
             <option key={d.id} value={d.id}>
@@ -157,7 +157,7 @@ export function InspectionNewPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-2 rounded border border-app-border bg-white p-4 shadow-panel">
+      <section className="flex flex-col gap-2 surface p-4">
         <h2 className="text-headline-sm text-viamar-800">Seriales ({lineas.length})</h2>
         {lineas.length === 0 ? (
           <p className="text-body-sm text-ink-secondary">
@@ -178,7 +178,7 @@ export function InspectionNewPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-2 rounded border border-app-border bg-white p-4 shadow-panel">
+      <section className="flex flex-col gap-2 surface p-4">
         <h2 className="text-headline-sm text-viamar-800">Inventario del dealer</h2>
         {inventario.length === 0 ? (
           <EmptyState

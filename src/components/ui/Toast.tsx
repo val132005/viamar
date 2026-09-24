@@ -25,7 +25,7 @@ export function ToastViewport() {
         return (
           <div
             key={t.id}
-            className={`bg-white border rounded shadow-panel px-3 py-2 flex items-start gap-2 ${TONE[t.tone]}`}
+            className={`bg-white/95 backdrop-blur border rounded-xl shadow-lift px-3 py-2.5 flex items-start gap-2 page-enter ${TONE[t.tone]}`}
           >
             <Icon size={16} className="mt-0.5 shrink-0" />
             <p className="text-body-sm text-ink flex-1">{t.message}</p>

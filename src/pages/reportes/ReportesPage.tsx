@@ -1,6 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { BadgeCheck, Clock, Download, Shield } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { PageTabs } from '../../components/ui/PageTabs'
+import { Pill } from '../../components/ui/Pill'
 import { formatDate } from '../../domain/dates'
 import { usd } from '../../domain/money'
 import { useBatteryStore } from '../../stores/batteryStore'
@@ -20,6 +24,19 @@ function downloadCsv(filename: string, header: string, lines: string[]) {
 
 const csvCell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
 
+const AGE_LIMIT_DAYS = 180
+
+type ReporteId = 'honras' | 'envejecido' | 'garantia'
+
+/** Botón de exportación: mismo gesto en los tres informes. */
+function ExportButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button size="sm" variant="secondary" leadingIcon={<Download size={14} />} onClick={onClick}>
+      Exportar CSV
+    </Button>
+  )
+}
+
 export function ReportesPage() {
   const honras = useWarrantyStore((s) => s.honras)
   const baterias = useBatteryStore((s) => s.baterias)
@@ -28,8 +45,13 @@ export function ReportesPage() {
   const dealers = useDistributorStore((s) => s.dealers)
   const dealerNombre = (id?: string) => dealers.find((d) => d.id === id)?.nombre ?? id ?? '—'
 
+  const [tab, setTab] = useState<ReporteId>('honras')
+
   const honrasDealerMes = useMemo(() => {
-    const map = new Map<string, { dealerId?: string; mes: string; n: number; usdCliente: number; usdAcreditar: number }>()
+    const map = new Map<
+      string,
+      { dealerId?: string; mes: string; n: number; usdCliente: number; usdAcreditar: number }
+    >()
     for (const h of honras) {
       const certs = certificados.filter((c) => c.serial === h.serialOriginal)
       const dealerId = certs[certs.length - 1]?.dealerId
@@ -41,7 +63,9 @@ export function ReportesPage() {
       cur.usdAcreditar += h.resultadoCalculo.montoAcreditar
       map.set(key, cur)
     }
-    return [...map.values()].sort((a, b) => `${a.mes}${a.dealerId}`.localeCompare(`${b.mes}${b.dealerId}`))
+    return [...map.values()].sort((a, b) =>
+      `${a.mes}${a.dealerId}`.localeCompare(`${b.mes}${b.dealerId}`),
+    )
   }, [honras, certificados])
 
   const envejecido = useMemo(() => {
@@ -52,7 +76,7 @@ export function ReportesPage() {
         ...b,
         dias: Math.floor((now - new Date(b.fechaIngreso).getTime()) / 86_400_000),
       }))
-      .filter((b) => b.dias > 180)
+      .filter((b) => b.dias > AGE_LIMIT_DAYS)
       .sort((a, b) => b.dias - a.dias)
   }, [baterias])
 
@@ -64,124 +88,238 @@ export function ReportesPage() {
       cur.n += 1
       map.set(key, cur)
     }
-    return [...map.values()].sort((a, b) => `${a.dealerId}${a.estado}`.localeCompare(`${b.dealerId}${b.estado}`))
+    return [...map.values()].sort((a, b) =>
+      `${a.dealerId}${a.estado}`.localeCompare(`${b.dealerId}${b.estado}`),
+    )
   }, [certificados])
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-headline-lg text-viamar-800">Reportes</h1>
+    <div className="page-fill">
+      <PageHeader
+        title="Reportes"
+        description="Agregados listos para exportar. Cada informe se calcula sobre los datos vivos del prototipo."
+        tabs={
+          <PageTabs
+            active={tab}
+            onChange={(id) => setTab(id as ReporteId)}
+            tabs={[
+              { id: 'honras', label: 'Honras por dealer', count: honrasDealerMes.length },
+              {
+                id: 'envejecido',
+                label: 'Stock envejecido',
+                count: envejecido.length,
+                tone: envejecido.length > 0 ? 'danger' : 'default',
+              },
+              { id: 'garantia', label: 'Uso de garantía', count: certsPorEstado.length },
+            ]}
+          />
+        }
+      />
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-end justify-between gap-2">
-          <h2 className="text-headline-sm">Honras por dealer y mes (USD)</h2>
-          <Button
-            variant="outlined"
-            className="h-8 text-label-md"
-            onClick={() =>
-              downloadCsv(
-                'honras-dealer-mes.csv',
-                'dealer,mes,honras,usd_cliente,usd_acreditar',
-                honrasDealerMes.map((r) =>
-                  [csvCell(dealerNombre(r.dealerId)), r.mes, r.n, r.usdCliente.toFixed(2), r.usdAcreditar.toFixed(2)].join(','),
-                ),
-              )
-            }
-          >
-            Exportar CSV
-          </Button>
-        </div>
+      {tab === 'honras' ? (
         <DataTable
+          title="Honras por dealer y mes"
+          icon={<Shield size={15} />}
+          density="compact"
+          actions={
+            <ExportButton
+              onClick={() =>
+                downloadCsv(
+                  'honras-dealer-mes.csv',
+                  'dealer,mes,honras,usd_cliente,usd_acreditar',
+                  honrasDealerMes.map((r) =>
+                    [
+                      csvCell(dealerNombre(r.dealerId)),
+                      r.mes,
+                      r.n,
+                      r.usdCliente.toFixed(2),
+                      r.usdAcreditar.toFixed(2),
+                    ].join(','),
+                  ),
+                )
+              }
+            />
+          }
           columns={[
-            { key: 'dealer', header: 'Dealer', render: (r) => dealerNombre(r.dealerId) },
-            { key: 'mes', header: 'Mes' },
-            { key: 'n', header: 'Honras', render: (r) => String(r.n) },
-            { key: 'usdC', header: 'USD cliente', render: (r) => usd(r.usdCliente) },
-            { key: 'usdA', header: 'USD acreditar', render: (r) => usd(r.usdAcreditar) },
+            {
+              key: 'dealer',
+              header: 'Dealer',
+              primary: true,
+              sortable: true,
+              sortValue: (r) => dealerNombre(r.dealerId),
+              render: (r) => dealerNombre(r.dealerId),
+            },
+            { key: 'mes', header: 'Mes', width: '120px', sortable: true },
+            {
+              key: 'n',
+              header: 'Honras',
+              align: 'right',
+              width: '100px',
+              sortable: true,
+              sortValue: (r) => r.n,
+              render: (r) => String(r.n),
+            },
+            {
+              key: 'usdC',
+              header: 'USD cliente',
+              align: 'right',
+              width: '140px',
+              sortable: true,
+              sortValue: (r) => r.usdCliente,
+              render: (r) => usd(r.usdCliente),
+            },
+            {
+              key: 'usdA',
+              header: 'USD acreditar',
+              align: 'right',
+              width: '150px',
+              sortable: true,
+              sortValue: (r) => r.usdAcreditar,
+              render: (r) => <span className="text-ink">{usd(r.usdAcreditar)}</span>,
+            },
           ]}
           rows={honrasDealerMes}
           rowKey={(r) => `${r.dealerId}|${r.mes}`}
           emptyTitle="Sin honras"
-          emptyDescription="Las honras ejecutadas se agregan por dealer y mes."
+          emptyDescription="Las honras ejecutadas se agregan aquí por dealer y mes."
         />
-      </section>
+      ) : null}
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-end justify-between gap-2">
-          <h2 className="text-headline-sm">Stock envejecido &gt;180 días por dealer ({envejecido.length})</h2>
-          <Button
-            variant="outlined"
-            className="h-8 text-label-md"
-            onClick={() =>
-              downloadCsv(
-                'stock-envejecido.csv',
-                'dealer,serial,articulo,fecha_ingreso,dias',
-                envejecido.map((b) =>
-                  [
-                    csvCell(dealerNombre(b.ubicacionId)),
-                    b.serial,
-                    csvCell(articulos.find((a) => a.id === b.articuloId)?.codigo ?? b.articuloId),
-                    b.fechaIngreso.slice(0, 10),
-                    b.dias,
-                  ].join(','),
-                ),
-              )
-            }
-          >
-            Exportar CSV
-          </Button>
-        </div>
+      {tab === 'envejecido' ? (
         <DataTable
+          title={`Stock envejecido (más de ${AGE_LIMIT_DAYS} días)`}
+          icon={<Clock size={15} />}
+          density="compact"
+          actions={
+            <ExportButton
+              onClick={() =>
+                downloadCsv(
+                  'stock-envejecido.csv',
+                  'dealer,serial,articulo,fecha_ingreso,dias',
+                  envejecido.map((b) =>
+                    [
+                      csvCell(dealerNombre(b.ubicacionId)),
+                      b.serial,
+                      csvCell(articulos.find((a) => a.id === b.articuloId)?.codigo ?? b.articuloId),
+                      b.fechaIngreso.slice(0, 10),
+                      b.dias,
+                    ].join(','),
+                  ),
+                )
+              }
+            />
+          }
           columns={[
-            { key: 'dealer', header: 'Dealer', render: (b) => dealerNombre(b.ubicacionId) },
-            { key: 'serial', header: 'Serial' },
+            {
+              key: 'dealer',
+              header: 'Dealer',
+              primary: true,
+              sortable: true,
+              sortValue: (b) => dealerNombre(b.ubicacionId),
+              render: (b) => dealerNombre(b.ubicacionId),
+            },
+            {
+              key: 'serial',
+              header: 'Serial',
+              width: '160px',
+              sortable: true,
+              render: (b) => <span className="font-code-serial">{b.serial}</span>,
+            },
             {
               key: 'art',
               header: 'Artículo',
+              width: '150px',
+              sortable: true,
+              sortValue: (b) => articulos.find((a) => a.id === b.articuloId)?.codigo ?? b.articuloId,
               render: (b) => articulos.find((a) => a.id === b.articuloId)?.codigo ?? b.articuloId,
             },
-            { key: 'ingreso', header: 'Ingreso', render: (b) => formatDate(b.fechaIngreso) },
-            { key: 'dias', header: 'Días', render: (b) => String(b.dias) },
+            {
+              key: 'ingreso',
+              header: 'Ingreso',
+              width: '140px',
+              sortable: true,
+              sortValue: (b) => b.fechaIngreso,
+              render: (b) => formatDate(b.fechaIngreso),
+            },
+            {
+              key: 'dias',
+              header: 'Días en stock',
+              align: 'right',
+              width: '130px',
+              sortable: true,
+              sortValue: (b) => b.dias,
+              render: (b) => (
+                <span className="font-semibold tabular-nums text-warning-text">{b.dias}</span>
+              ),
+            },
           ]}
           rows={envejecido}
           rowKey={(b) => b.serial}
+          rowTone={() => 'warn'}
           emptyTitle="Sin stock envejecido"
-          emptyDescription="Ninguna batería de dealer supera 180 días de ingreso."
+          emptyDescription={`Ninguna batería en dealer supera los ${AGE_LIMIT_DAYS} días desde su ingreso.`}
         />
-      </section>
+      ) : null}
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-end justify-between gap-2">
-          <h2 className="text-headline-sm">Certificados por estado</h2>
-          <Button
-            variant="outlined"
-            className="h-8 text-label-md"
-            onClick={() =>
-              downloadCsv(
-                'certificados-estado.csv',
-                'dealer,estado,certificados',
-                certsPorEstado.map((r) => [csvCell(dealerNombre(r.dealerId)), r.estado, r.n].join(',')),
-              )
-            }
-          >
-            Exportar CSV
-          </Button>
-        </div>
+      {tab === 'garantia' ? (
         <DataTable
+          title="Uso de garantía por dealer"
+          icon={<BadgeCheck size={15} />}
+          density="compact"
+          actions={
+            <ExportButton
+              onClick={() =>
+                downloadCsv(
+                  'certificados-estado.csv',
+                  'dealer,estado,certificados',
+                  certsPorEstado.map((r) =>
+                    [csvCell(dealerNombre(r.dealerId)), r.estado, r.n].join(','),
+                  ),
+                )
+              }
+            />
+          }
           columns={[
-            { key: 'dealer', header: 'Dealer', render: (r) => dealerNombre(r.dealerId) },
+            {
+              key: 'dealer',
+              header: 'Dealer',
+              primary: true,
+              sortable: true,
+              sortValue: (r) => dealerNombre(r.dealerId),
+              render: (r) => dealerNombre(r.dealerId),
+            },
             {
               key: 'estado',
-              header: 'Estado',
-              render: (r) => (r.estado === 'E' ? 'E · vigente' : 'C · cancelado'),
+              header: 'Estado del certificado',
+              width: '220px',
+              sortable: true,
+              render: (r) =>
+                r.estado === 'E' ? (
+                  <Pill tone="ok" dot>
+                    CERT-E · vigente
+                  </Pill>
+                ) : (
+                  <Pill tone="danger" dot>
+                    CERT-C · cancelado
+                  </Pill>
+                ),
             },
-            { key: 'n', header: 'Certificados', render: (r) => String(r.n) },
+            {
+              key: 'n',
+              header: 'Certificados',
+              align: 'right',
+              width: '140px',
+              sortable: true,
+              sortValue: (r) => r.n,
+              render: (r) => String(r.n),
+            },
           ]}
           rows={certsPorEstado}
           rowKey={(r) => `${r.dealerId}|${r.estado}`}
           emptyTitle="Sin certificados"
-          emptyDescription="Los certificados emitidos se agregan por dealer y estado."
+          emptyDescription="Los certificados emitidos se agregan aquí por dealer y estado."
         />
-      </section>
+      ) : null}
     </div>
   )
 }

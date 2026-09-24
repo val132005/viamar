@@ -1,8 +1,13 @@
+/**
+ * Aviso de entorno. Es información de sistema, no un elemento de marca: se
+ * mantiene discreto para no competir con el contenido de trabajo.
+ */
 export function PrototypeBanner() {
   return (
-    <div className="bg-viamar-50 border-b border-viamar-200">
-      <p className="px-4 py-1.5 text-label-sm uppercase tracking-wider text-viamar-800">
-        Prototipo — datos de demostración. No hay integración real con D365FO.
+    <div className="flex h-6 shrink-0 items-center gap-2 border-b border-warning-border bg-warning-soft px-4 lg:px-6">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" aria-hidden="true" />
+      <p className="truncate text-body-xs text-warning-text">
+        Entorno de prototipo · datos de demostración, sin integración real con D365FO.
       </p>
     </div>
   )

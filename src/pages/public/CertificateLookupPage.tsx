@@ -18,7 +18,7 @@ export function CertificateLookupPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto bg-white border border-app-border rounded p-6 flex flex-col gap-4">
+    <div className="max-w-xl mx-auto surface p-7 flex flex-col gap-4">
       <h1 className="text-headline-lg text-viamar-800">Certificado digital de baterías</h1>
       <p className="text-body-sm text-ink-secondary">
         Misma consulta que el portal público de grupoviamar.com/certificado: por documento del
@@ -31,8 +31,10 @@ export function CertificateLookupPage() {
             type="button"
             onClick={() => setTab(t)}
             className={cn(
-              'h-9 px-3 rounded text-label-md',
-              tab === t ? 'bg-viamar-500 text-white' : 'bg-app-bg hover:bg-viamar-50',
+              'h-9 px-3 rounded-lg text-label-md transition-all duration-200',
+              tab === t
+                ? 'bg-viamar-500 text-white shadow-brand-btn'
+                : 'bg-viamar-50 hover:bg-viamar-100',
             )}
           >
             {t}

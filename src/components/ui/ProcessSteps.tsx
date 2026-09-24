@@ -1,0 +1,130 @@
+import { Check, X } from 'lucide-react'
+import { cn } from '../../lib/cn'
+
+export type ProcessStep = {
+  id: string
+  label: string
+  /** Detalle breve: fecha, responsable o cuántos elementos hay en esta etapa. */
+  hint?: string
+}
+
+type Props = {
+  steps: ProcessStep[]
+  /** Índice de la etapa actual. Las anteriores se dan por completadas. */
+  current: number
+  /** Marca el proceso como interrumpido en la etapa actual. */
+  aborted?: boolean
+  className?: string
+}
+
+/**
+ * Indicador de etapas. Responde a una pregunta que una tabla no puede
+ * contestar de un vistazo: en qué punto del recorrido está esto y qué falta.
+ */
+export function ProcessSteps({ steps, current, aborted = false, className }: Props) {
+  return (
+    <ol className={cn('flex flex-wrap items-center gap-x-1 gap-y-2', className)}>
+      {steps.map((step, i) => {
+        const done = i < current
+        const active = i === current
+        const failed = active && aborted
+
+        return (
+          <li key={step.id} className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-label-sm font-bold tabular-nums',
+                  failed && 'bg-critical text-white',
+                  !failed && done && 'bg-success text-white',
+                  !failed && active && 'bg-viamar-500 text-white',
+                  !failed && !done && !active && 'bg-neutral-200 text-neutral-600',
+                )}
+              >
+                {failed ? (
+                  <X size={12} strokeWidth={3} />
+                ) : done ? (
+                  <Check size={12} strokeWidth={3} />
+                ) : (
+                  i + 1
+                )}
+              </span>
+
+              <span className="min-w-0">
+                <span
+                  className={cn(
+                    'block whitespace-nowrap',
+                    active ? 'text-label-lg text-ink' : 'text-label-md',
+                    done && 'text-ink-secondary',
+                    !done && !active && 'text-ink-tertiary',
+                    failed && 'text-critical-text',
+                  )}
+                >
+                  {step.label}
+                </span>
+                {step.hint ? (
+                  <span className="block whitespace-nowrap text-body-xs text-ink-tertiary">
+                    {step.hint}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+
+            {i < steps.length - 1 ? (
+              <span
+                aria-hidden="true"
+                className={cn('mx-2 h-px w-8 shrink-0', done ? 'bg-success' : 'bg-line-strong')}
+              />
+            ) : null}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+/** Barra de avance con su cifra: sustituye a un «0/3» suelto en una celda. */
+export function ProgressBar({
+  done,
+  total,
+  className,
+  showLabel = true,
+}: {
+  done: number
+  total: number
+  className?: string
+  showLabel?: boolean
+}) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+  const complete = total > 0 && done === total
+
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      <div
+        className="h-1.5 w-full min-w-[44px] max-w-[96px] overflow-hidden rounded-full bg-neutral-200"
+        role="progressbar"
+        aria-valuenow={done}
+        aria-valuemin={0}
+        aria-valuemax={total}
+      >
+        <span
+          className={cn(
+            'block h-full rounded-full transition-[width] duration-300 ease-brand',
+            complete ? 'bg-success' : 'bg-viamar-500',
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {showLabel ? (
+        <span
+          className={cn(
+            'shrink-0 text-label-md tabular-nums',
+            complete ? 'text-success-text' : 'text-ink-secondary',
+          )}
+        >
+          {done}/{total}
+        </span>
+      ) : null}
+    </div>
+  )
+}

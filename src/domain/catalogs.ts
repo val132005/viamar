@@ -18,35 +18,40 @@ export type CatalogItem = {
     | 'manual'
 }
 
+/*
+ * Tonos alineados con los roles semánticos del sistema de diseño
+ * (ver `src/styles/tokens.css`). La escala de gravedad del diagnóstico se lee
+ * de arriba abajo: correcto → atención → riesgo → fallo.
+ */
 export const DIAGNOSTICO_CATALOG: CatalogItem[] = [
   {
     id: 'BUEN_ESTADO',
     label: 'Buen estado',
-    tone: { bg: '#E8F5E9', border: '#A5D6A7', fg: '#1B5E20' },
+    tone: { bg: '#E8F5EC', border: '#B6DFC2', fg: '#14602A' },
     icon: 'check',
   },
   {
     id: 'DESCARGADA',
     label: 'Descargada',
-    tone: { bg: '#FFF8E1', border: '#FFE082', fg: '#8A5A00' },
+    tone: { bg: '#FDF3E4', border: '#F2D5A8', fg: '#8A5008' },
     icon: 'charge',
   },
   {
     id: 'PARA_GARANTIA',
     label: 'Para garantía',
-    tone: { bg: '#FFF3E0', border: '#FFCC80', fg: '#B03A00' },
+    tone: { bg: '#FDEEE6', border: '#F6C9AE', fg: '#9A4514' },
     icon: 'shield',
   },
   {
     id: 'DANADA',
     label: 'Dañada',
-    tone: { bg: '#FFEBEE', border: '#EF9A9A', fg: '#B71C1C' },
+    tone: { bg: '#FDECEB', border: '#F3BFBA', fg: '#9B2C24' },
     icon: 'damage',
   },
   {
     id: 'PENDIENTE',
     label: 'Pendiente',
-    tone: { bg: '#ECEFF1', border: '#B0BEC5', fg: '#37474F' },
+    tone: { bg: '#F1F4F8', border: '#E3E8EF', fg: '#3A4855' },
     icon: 'pending',
   },
 ]
@@ -55,13 +60,15 @@ export const CERTIFICADO_CATALOG: CatalogItem[] = [
   {
     id: 'E',
     label: 'CERT-E',
-    tone: { bg: '#E3F2FD', border: '#90CAF9', fg: '#0D47A1' },
+    tone: { bg: '#E6F2FB', border: '#B3D8F0', fg: '#0A5E92' },
     icon: 'cert-e',
   },
   {
     id: 'C',
+    /* Único tono fuera de la familia azul: un certificado cancelado debe
+       distinguirse de un vigente de un vistazo, sin leer la etiqueta. */
     label: 'CERT-C · Cancelado',
-    tone: { bg: '#EDE7F6', border: '#B39DDB', fg: '#4A148C' },
+    tone: { bg: '#F1EFFA', border: '#CFC8EC', fg: '#4B3F8F' },
     icon: 'cert-c',
   },
 ]
@@ -70,25 +77,25 @@ export const ORIGEN_CATALOG: CatalogItem[] = [
   {
     id: 'D365',
     label: 'Dynamics 365',
-    tone: { bg: '#E3F2FD', border: '#90CAF9', fg: '#0D47A1' },
+    tone: { bg: '#E6F2FB', border: '#B3D8F0', fg: '#0A5E92' },
     icon: 'dynamics',
   },
   {
     id: 'PORTAL',
     label: 'Portal Viamar',
-    tone: { bg: '#E8F5E9', border: '#A5D6A7', fg: '#1B5E20' },
+    tone: { bg: '#E8F5EC', border: '#B6DFC2', fg: '#14602A' },
     icon: 'portal',
   },
   {
     id: 'SMART',
     label: 'SMART Legacy',
-    tone: { bg: '#FFF8E1', border: '#FFE082', fg: '#8A5A00' },
+    tone: { bg: '#FDF3E4', border: '#F2D5A8', fg: '#8A5008' },
     icon: 'smart',
   },
   {
     id: 'MANUAL',
     label: 'Manual',
-    tone: { bg: '#ECEFF1', border: '#B0BEC5', fg: '#37474F' },
+    tone: { bg: '#F1F4F8', border: '#E3E8EF', fg: '#3A4855' },
     icon: 'manual',
   },
 ]

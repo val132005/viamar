@@ -8,6 +8,7 @@ import {
   ShieldAlert,
 } from 'lucide-react'
 import { ViamarLogo } from '../../components/brand/ViamarLogo'
+import { Button } from '../../components/ui/Button'
 
 const SCALE = [
   { token: '50', hex: '#F2F6FA', use: 'Fila activa, fondo de badge' },
@@ -18,7 +19,7 @@ const SCALE = [
   { token: '600', hex: '#1B5C93', use: 'Hover de botón primario' },
   { token: '700', hex: '#185587', use: 'Texto azul sobre fondo claro' },
   { token: '800', hex: '#12436B', use: 'Active, encabezado oscuro' },
-  { token: '900', hex: '#0E3453', use: 'Máximo contraste' },
+  { token: '900', hex: '#0E3453', use: 'Sidebar, máximo contraste' },
 ] as const
 
 const NEUTRALS = [
@@ -132,7 +133,7 @@ export function DesignSystemPage() {
 
       <main className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-10">
         <Section id="marca" title="Marca">
-          <div className="bg-white border border-app-border rounded p-6 flex flex-col gap-3">
+          <div className="surface p-6 flex flex-col gap-3">
             <ViamarLogo className="h-16 w-auto self-start" />
             <p className="text-body-sm text-ink-secondary max-w-2xl">
               Logo oficial trazado a curvas desde el original del sitio corporativo (1024×330). Escala
@@ -152,7 +153,7 @@ export function DesignSystemPage() {
         <Section id="escala" title="Escala Viamar">
           <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 mb-4">
             {SCALE.map((s) => (
-              <div key={s.token} className="bg-white border border-app-border rounded overflow-hidden">
+              <div key={s.token} className="surface overflow-hidden">
                 <div className="h-16" style={{ background: s.hex }} />
                 <div className="p-2">
                   <p className="text-label-sm uppercase text-ink-secondary">{s.token}</p>
@@ -161,7 +162,7 @@ export function DesignSystemPage() {
               </div>
             ))}
           </div>
-          <div className="overflow-x-auto bg-white border border-app-border rounded">
+          <div className="overflow-x-auto surface">
             <table className="w-full text-body-sm">
               <thead className="bg-app-surface-alt text-ink-secondary text-label-md">
                 <tr>
@@ -186,7 +187,7 @@ export function DesignSystemPage() {
         <Section id="neutros" title="Neutros">
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             {NEUTRALS.map((n) => (
-              <div key={n.name} className="bg-white border border-app-border rounded overflow-hidden">
+              <div key={n.name} className="surface overflow-hidden">
                 <div
                   className="h-12 border-b border-app-border"
                   style={{ background: n.hex }}
@@ -201,7 +202,7 @@ export function DesignSystemPage() {
         </Section>
 
         <Section id="tipografia" title="Tipografía">
-          <div className="bg-white border border-app-border rounded divide-y divide-app-border">
+          <div className="surface divide-y divide-app-border">
             {TYPE_SCALE.map((t) => (
               <div key={t.name} className="px-4 py-3 flex flex-col sm:flex-row sm:items-baseline gap-2">
                 <code className="text-label-sm text-viamar-700 w-32 shrink-0">{t.name}</code>
@@ -220,24 +221,9 @@ export function DesignSystemPage() {
 
         <Section id="botones" title="Botones">
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className="h-10 px-4 rounded bg-viamar-500 text-white font-semibold hover:bg-viamar-600 active:bg-viamar-800"
-            >
-              Primario
-            </button>
-            <button
-              type="button"
-              className="h-10 px-4 rounded border border-app-border-strong bg-white hover:bg-app-bg font-semibold"
-            >
-              Outlined
-            </button>
-            <button
-              type="button"
-              className="h-10 px-4 rounded bg-danger text-white font-semibold hover:bg-[#B71C1C]"
-            >
-              Destructivo
-            </button>
+            <Button>Primario</Button>
+            <Button variant="outlined">Outlined</Button>
+            <Button variant="danger">Destructivo</Button>
             <a href="#botones" className="text-viamar-700 font-semibold hover:text-viamar-link-hover">
               Enlace de texto
             </a>
@@ -261,7 +247,7 @@ export function DesignSystemPage() {
               return (
                 <span
                   key={b.label}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-label-sm uppercase"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-label-sm uppercase"
                   style={{ background: b.bg, borderColor: b.border, color: b.fg }}
                 >
                   <Icon size={14} strokeWidth={2.2} />
@@ -279,21 +265,21 @@ export function DesignSystemPage() {
 
         <Section id="elevacion" title="Elevación">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded bg-app-bg">
+            <div className="p-5 rounded-xl bg-app-bg">
               <p className="text-label-md text-ink-secondary mb-1">Nivel 0 · fondo</p>
-              <p className="text-body-sm">#F8F8F8, sin borde.</p>
+              <p className="text-body-sm">#F8F8F8 con mesh de marca.</p>
             </div>
-            <div className="p-4 rounded bg-white border border-app-border">
+            <div className="p-5 surface">
               <p className="text-label-md text-ink-secondary mb-1">Nivel 1 · superficie</p>
-              <p className="text-body-sm">Borde 1px #E0E0E0, sin sombra.</p>
+              <p className="text-body-sm">Radio 16px, sombra panel azulada.</p>
             </div>
-            <div className="p-4 rounded bg-white border border-app-border-strong shadow-panel">
-              <p className="text-label-md text-ink-secondary mb-1">Nivel 2 · panel</p>
-              <p className="text-body-sm">0 2px 6px rgba(0,0,0,.06).</p>
+            <div className="p-5 surface shadow-lift">
+              <p className="text-label-md text-ink-secondary mb-1">Nivel 2 · hover</p>
+              <p className="text-body-sm">Lift al pasar el cursor.</p>
             </div>
-            <div className="p-4 rounded bg-white shadow-modal">
+            <div className="p-5 rounded-xl bg-white shadow-modal">
               <p className="text-label-md text-ink-secondary mb-1">Nivel 3 · modal</p>
-              <p className="text-body-sm">0 8px 24px rgba(0,0,0,.12).</p>
+              <p className="text-body-sm">Sombra profunda, overlay con blur.</p>
             </div>
           </div>
         </Section>
@@ -306,15 +292,12 @@ export function DesignSystemPage() {
             <input
               defaultValue=""
               placeholder="Escanear o escribir CIB…"
-              className="h-10 w-72 px-3 rounded border border-app-border-strong bg-white font-code-serial"
+              className="h-10 w-72 px-3 rounded-lg border border-app-border-strong bg-white font-code-serial transition-shadow focus:shadow-glow"
             />
-            <button
-              type="button"
-              className="h-10 px-4 rounded bg-viamar-500 text-white font-semibold inline-flex items-center gap-2 hover:bg-viamar-600"
-            >
+            <Button>
               <ScanLine size={16} />
               Buscar batería
-            </button>
+            </Button>
           </div>
         </Section>
       </main>

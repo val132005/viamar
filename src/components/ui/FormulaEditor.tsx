@@ -36,7 +36,7 @@ export function FormulaEditor({ value, onChange }: Props) {
           <button
             key={v}
             type="button"
-            className="px-2 py-0.5 rounded-sm border border-viamar-200 bg-viamar-50 text-viamar-700 text-label-sm"
+            className="px-2.5 py-0.5 rounded-full border border-viamar-200 bg-viamar-50 text-viamar-700 text-label-sm hover:bg-viamar-100 transition-colors"
             onClick={() => onChange(value ? `${value} ${v}` : v)}
           >
             {v}

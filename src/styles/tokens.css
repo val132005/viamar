@@ -1,37 +1,151 @@
+/* ============================================================================
+   VIAMAR — DESIGN TOKENS
+   Lenguaje visual: "operational calm".
+   Identidad de marca intacta (azules Viamar + Open Sans); la jerarquía se
+   construye con peso, color de texto y capas de superficie — no con
+   decoración. Todo valor de espaciado es múltiplo de 4.
+   ========================================================================= */
+
 :root {
-  --viamar-50: #f2f6fa;
-  --viamar-100: #e0eaf3;
-  --viamar-200: #bcd2e5;
-  --viamar-400: #588fbe;
-  --viamar-500: #206aa9;
+  /* --- Marca -------------------------------------------------------------- */
+  --viamar-50: #f1f6fb;
+  --viamar-100: #e1ebf5;
+  --viamar-200: #c3d8ea;
+  --viamar-300: #94bad9;
+  --viamar-400: #5892c2;
+  --viamar-500: #206aa9; /* primario corporativo (medido del sitio) */
   --viamar-600: #1b5c93;
-  --viamar-700: #185587;
-  --viamar-800: #12436b;
-  --viamar-900: #0e3453;
-  --viamar-accent: #039be5;
+  --viamar-700: #175079;
+  --viamar-800: #133f5f;
+  --viamar-900: #0e3453; /* estructural: sidebar */
+  --viamar-950: #08202f;
+  --viamar-accent: #039be5; /* acento de marca */
+  --viamar-accent-strong: #0284c7;
   --viamar-link-hover: #42a5f5;
 
-  --bg-app: #f8f8f8;
-  --surface: #ffffff;
-  --surface-alt: #fafafa;
-  --border: #e0e0e0;
-  --border-strong: #d5d5d5;
+  /* --- Neutros fríos -----------------------------------------------------
+     Tintados hacia el azul de marca para que grises y azules convivan.      */
+  --neutral-0: #ffffff;
+  --neutral-25: #fbfcfe;
+  --neutral-50: #f6f8fb;
+  --neutral-100: #eff2f7;
+  --neutral-200: #e3e8ef;
+  --neutral-300: #cfd7e1;
+  --neutral-400: #9aa7b6;
+  --neutral-500: #6b7a8b;
+  --neutral-600: #4f5e6e;
+  --neutral-700: #3a4855;
+  --neutral-800: #26313c;
+  --neutral-900: #161e26;
 
-  --text-primary: rgba(0, 0, 0, 0.87);
-  --text-secondary: #6f6f6f;
-  --text-disabled: rgba(0, 0, 0, 0.38);
+  /* --- Superficies (capas de profundidad) -------------------------------- */
+  --surface-sunken: #f7f9fc; /* fondo de aplicación */
+  --surface: #ffffff; /* tarjetas, tablas, paneles */
+  --surface-raised: #ffffff; /* popovers, modales, drawers */
+  --surface-subtle: #f9fbfd; /* cabeceras de tabla, zonas de apoyo */
+  --surface-hover: #f2f6fb;
+  --surface-active: #e8f0f9;
+  --surface-selected: #e4eff9;
+  --surface-inverse: #0e3453;
 
-  --ok: #2e7d32;
-  --warn: #ed6c02;
-  --error: #c62828;
-  --info: #039be5;
+  /* --- Texto (4 niveles de jerarquía) ------------------------------------ */
+  --text-primary: #17242f; /* dato principal */
+  --text-secondary: #566573; /* etiquetas, texto de apoyo */
+  --text-tertiary: #86929f; /* metadata, timestamps */
+  --text-disabled: #a8b2bc;
+  --text-brand: #175079;
+  --text-on-brand: #ffffff;
+  --text-link: #1b5c93;
 
-  --font: 'Open Sans', system-ui, sans-serif;
+  /* --- Bordes (3 intensidades) ------------------------------------------- */
+  --border-subtle: #eef1f6; /* separadores internos: filas de tabla */
+  --border: #e3e8ef; /* contorno de superficies */
+  --border-strong: #cfd7e1; /* inputs, controles */
+  --border-brand: #c3d8ea;
 
-  --shadow-panel: 0 2px 6px rgba(0, 0, 0, 0.06);
-  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --focus-ring: 2px solid #206aa9;
+  /* --- Semánticos --------------------------------------------------------
+     Cada rol trae: solid (relleno), text (sobre soft), soft (fondo),
+     border (contorno del soft).                                            */
+  --success: #1f7a34;
+  --success-text: #14602a;
+  --success-soft: #e8f5ec;
+  --success-border: #b6dfc2;
+
+  --warning: #b4690e;
+  --warning-text: #8a5008;
+  --warning-soft: #fdf3e4;
+  --warning-border: #f2d5a8;
+
+  --danger: #c0392f;
+  --danger-text: #9b2c24;
+  --danger-soft: #fdeceb;
+  --danger-border: #f3bfba;
+
+  --info: #0c7cc0;
+  --info-text: #0a5e92;
+  --info-soft: #e6f2fb;
+  --info-border: #b3d8f0;
+
+  --neutral-solid: #4f5e6e;
+  --neutral-text: #3a4855;
+  --neutral-soft: #f1f4f8;
+  --neutral-soft-border: #e3e8ef;
+
+  /* --- Tipografía --------------------------------------------------------- */
+  --font: 'Open Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'SFMono-Regular', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+
+  /* --- Radios (empresarial contemporáneo, nunca pastilla) ---------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 8px; /* controles, inputs, botones */
+  --radius-md: 10px; /* tarjetas y paneles */
+  --radius-lg: 14px; /* contenedores mayores, modales */
+  --radius-full: 9999px; /* solo avatares y puntos de estado */
+
+  /* --- Elevación ---------------------------------------------------------
+     Muy contenida: la profundidad la aporta la capa de superficie.         */
+  --shadow-xs: 0 1px 2px rgba(22, 30, 38, 0.04);
+  --shadow-sm:
+    0 1px 2px rgba(22, 30, 38, 0.04),
+    0 1px 3px rgba(22, 30, 38, 0.06);
+  --shadow-md:
+    0 2px 4px -1px rgba(22, 30, 38, 0.05),
+    0 4px 12px -2px rgba(22, 30, 38, 0.08);
+  --shadow-lg:
+    0 8px 16px -4px rgba(22, 30, 38, 0.08),
+    0 16px 32px -8px rgba(22, 30, 38, 0.12);
+  --focus-ring: 0 0 0 3px rgba(32, 106, 169, 0.18);
+  --focus-ring-danger: 0 0 0 3px rgba(192, 57, 47, 0.18);
+
+  /* --- Altura de controles (densidad operativa) -------------------------- */
+  --control-xs: 24px;
+  --control-sm: 28px;
+  --control: 32px;
+  --control-md: 36px;
+  --control-lg: 40px;
+
+  /* --- Altura de fila de tabla ------------------------------------------- */
+  --row-compact: 36px;
+  --row: 44px;
+  --row-relaxed: 52px;
+
+  /* --- Movimiento --------------------------------------------------------
+     Rápido y discreto. Nada se anima por decoración.                       */
+  --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+  --duration-instant: 80ms;
+  --duration-fast: 130ms;
+  --duration: 180ms;
+
+  /* --- Layout ------------------------------------------------------------- */
+  --sidebar-w: 236px;
+  --sidebar-w-collapsed: 60px;
+  --topbar-h: 56px;
 }
+
+/* ============================================================================
+   BASE
+   ========================================================================= */
 
 html,
 body,
@@ -42,22 +156,176 @@ body,
 body {
   margin: 0;
   font-family: var(--font);
-  font-size: 15px;
-  line-height: 22px;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--text-primary);
-  background: var(--bg-app);
+  background-color: var(--surface-sunken);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cifras siempre alineadas en columnas numéricas. */
+.tnum {
   font-variant-numeric: tabular-nums;
 }
 
 .font-code-serial {
   font-family: var(--font);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
 
+/* ============================================================================
+   FOCO — visible siempre, nunca intrusivo
+   ========================================================================= */
+
+:focus {
+  outline: none;
+}
+
 :focus-visible {
-  outline: var(--focus-ring);
+  outline: 2px solid var(--viamar-500);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   SUPERFICIES
+   ========================================================================= */
+
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* Panel con elevación mínima: para elementos que flotan sobre el contenido. */
+.surface-raised {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.surface-sunken {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+
+/* Interactiva: el feedback es el fondo y el borde, no el desplazamiento. */
+.surface-interactive {
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.surface-interactive:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-brand);
+}
+
+/* ============================================================================
+   LAYOUT DE PÁGINA
+   ========================================================================= */
+
+.page-fill {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-enter {
+  height: 100%;
+  min-height: 0;
+  animation: fade-in var(--duration) var(--ease) both;
+}
+
+/* Barra de scroll discreta dentro de paneles. */
+.scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--neutral-300) transparent;
+}
+
+.scroll-slim::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scroll-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-slim::-webkit-scrollbar-thumb {
+  background-color: var(--neutral-300);
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.scroll-slim::-webkit-scrollbar-thumb:hover {
+  background-color: var(--neutral-400);
+}
+
+/* ============================================================================
+   CARGA — skeletons
+   ========================================================================= */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100) 25%,
+    var(--neutral-200) 37%,
+    var(--neutral-100) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   MARCA — reservado a superficies públicas (login, certificado)
+   Dentro de la aplicación operativa NO se usa decoración de fondo.
+   ========================================================================= */
+
+.brand-canvas {
+  background:
+    radial-gradient(900px 520px at 12% -10%, rgba(3, 155, 229, 0.16), transparent 60%),
+    radial-gradient(760px 480px at 92% 8%, rgba(32, 106, 169, 0.14), transparent 58%),
+    var(--viamar-900);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

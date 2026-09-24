@@ -1,11 +1,25 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useMemo, useState } from 'react'
+import { Check, CheckCircle2, Handshake, PackagePlus, X } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
-import { DataTable } from '../../components/ui/DataTable'
+import { DataTable, CellStack } from '../../components/ui/DataTable'
 import { Modal } from '../../components/ui/Modal'
 import { SelectField, TextAreaField } from '../../components/ui/FormField'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { PageTabs } from '../../components/ui/PageTabs'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { MetricGrid } from '../../components/ui/Workspace'
+import { Pill } from '../../components/ui/Pill'
+import { SerialCell } from '../../components/ui/SerialCell'
 import { formatDate } from '../../domain/dates'
+import { humanizeEstado, vigenciaLabel, vigenciaTone } from '../../domain/estados'
+
+export function estadoDealerLabel(estado: string): string {
+  if (estado === 'SOLICITADA') return 'PENDIENTE'
+  if (estado === 'APROBADA') return 'AUTORIZADA'
+  return estado
+}
+import { usd } from '../../domain/money'
 import { useBatteryStore } from '../../stores/batteryStore'
 import { useCertificateStore } from '../../stores/certificateStore'
 import { useDistributorStore } from '../../stores/distributorStore'
@@ -18,11 +32,7 @@ import {
   rechazarHonraDealer,
 } from '../../stores/actions/honra'
 
-export function estadoDealerLabel(estado: string): string {
-  if (estado === 'SOLICITADA') return 'PENDIENTE'
-  if (estado === 'APROBADA') return 'AUTORIZADA'
-  return estado
-}
+type TabBandeja = 'pendientes' | 'autorizadas' | 'historial'
 
 export function DealerAuthPage() {
   const honras = useWarrantyStore((s) => s.honras)
@@ -30,16 +40,25 @@ export function DealerAuthPage() {
   const certificados = useCertificateStore((s) => s.certificados)
   const dealers = useDistributorStore((s) => s.dealers)
   const toast = useUiStore((s) => s.pushToast)
-  const [motivo, setMotivo] = useState('')
+
+  const [tab, setTab] = useState<TabBandeja>('pendientes')
+  const [q, setQ] = useState('')
+
+  // Modales de acción
+  const [autorizarId, setAutorizarId] = useState<string | null>(null)
   const [rechazoId, setRechazoId] = useState<string | null>(null)
   const [reposicionId, setReposicionId] = useState<string | null>(null)
+  const [motivo, setMotivo] = useState('')
   const [reemplazo, setReemplazo] = useState('')
 
-  const dealerDe = (serial: string): string => {
-    const certs = certificados.filter((c) => c.serial === serial)
-    const dealerId = certs[certs.length - 1]?.dealerId ?? baterias[serial]?.ubicacionId
-    return dealers.find((d) => d.id === dealerId)?.nombre ?? dealerId ?? '—'
-  }
+  const dealerDe = useCallback(
+    (serial: string): string => {
+      const certs = certificados.filter((c) => c.serial === serial)
+      const dealerId = certs[certs.length - 1]?.dealerId ?? baterias[serial]?.ubicacionId
+      return dealers.find((d) => d.id === dealerId)?.nombre ?? dealerId ?? '—'
+    },
+    [certificados, baterias, dealers],
+  )
 
   const pendientes = useMemo(
     () =>
@@ -65,16 +84,25 @@ export function DealerAuthPage() {
         .sort((a, b) => b.fechaCalculo.localeCompare(a.fechaCalculo)),
     [honras],
   )
+
   const candidatos = reposicionId ? fifoCandidatos(reposicionId) : []
 
-  function autorizar(honraId: string) {
-    const r = autorizarHonraDealer(honraId, motivo.trim() ? motivo.trim() : undefined)
-    toast(r.ok ? 'Solicitud AUTORIZADA · habilita reposición FIFO' : r.error, r.ok ? 'ok' : 'error')
-    if (r.ok) setMotivo('')
+  function ejecutarAutorizacion() {
+    if (!autorizarId) return
+    const r = autorizarHonraDealer(autorizarId, motivo.trim() ? motivo.trim() : undefined)
+    toast(r.ok ? 'Solicitud autorizada · habilitada para reposición FIFO' : r.error, r.ok ? 'ok' : 'error')
+    if (r.ok) {
+      setAutorizarId(null)
+      setMotivo('')
+    }
   }
 
   function rechazar() {
     if (!rechazoId) return
+    if (!motivo.trim()) {
+      toast('El motivo del rechazo es obligatorio.', 'warn')
+      return
+    }
     const r = rechazarHonraDealer(rechazoId, motivo)
     toast(r.ok ? 'Solicitud rechazada' : r.error, r.ok ? 'ok' : 'error')
     if (r.ok) {
@@ -89,223 +117,420 @@ export function DealerAuthPage() {
       return
     }
     const r = ejecutarReposicionDealer(reposicionId, reemplazo)
-    toast(r.ok ? `Reposición ejecutada · ${r.reemplazo}` : r.error, r.ok ? 'ok' : 'error')
+    toast(r.ok ? `Reposición ejecutada · serial ${r.reemplazo}` : r.error, r.ok ? 'ok' : 'error')
     if (r.ok) {
       setReposicionId(null)
       setReemplazo('')
     }
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-headline-lg text-viamar-800">Autorización de honras dealer</h1>
-        <p className="text-body-sm text-ink-secondary">
-          Bandeja piloto: autoriza o rechaza con motivo. Al autorizar, la reposición sale del stock
-          Viamar del mismo artículo, el más antiguo primero (FIFO).
-        </p>
-      </div>
+  // Filtrado por buscador
+  const needle = q.toLowerCase().trim()
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-headline-sm">Pendientes ({pendientes.length})</h2>
-        <DataTable
-          columns={[
-            {
-              key: 'serial',
-              header: 'Serial',
-              render: (h) => (
-                <Link className="font-code-serial text-viamar-700" to={`/serial/${h.serialOriginal}`}>
-                  {h.serialOriginal}
-                </Link>
-              ),
-            },
-            { key: 'dealer', header: 'Dealer', render: (h) => dealerDe(h.serialOriginal) },
-            {
-              key: 'dx',
-              header: 'Diagnóstico',
-              render: (h) =>
-                baterias[h.serialOriginal] ? (
-                  <StatusBadge catalogId={baterias[h.serialOriginal].diagnosticoId} />
-                ) : (
-                  '—'
+  const pendientesFiltradas = useMemo(() => {
+    if (!needle) return pendientes
+    return pendientes.filter(
+      (h) => h.serialOriginal.toLowerCase().includes(needle) || dealerDe(h.serialOriginal).toLowerCase().includes(needle),
+    )
+  }, [pendientes, needle, dealerDe])
+
+  const autorizadasFiltradas = useMemo(() => {
+    if (!needle) return autorizadas
+    return autorizadas.filter(
+      (h) => h.serialOriginal.toLowerCase().includes(needle) || dealerDe(h.serialOriginal).toLowerCase().includes(needle),
+    )
+  }, [autorizadas, needle, dealerDe])
+
+  const historialFiltrado = useMemo(() => {
+    if (!needle) return historial
+    return historial.filter(
+      (h) => h.serialOriginal.toLowerCase().includes(needle) || dealerDe(h.serialOriginal).toLowerCase().includes(needle),
+    )
+  }, [historial, needle, dealerDe])
+
+  return (
+    <div className="page-fill">
+      <PageHeader
+        title="Autorización de honras de distribuidores"
+        description="Bandeja de validación técnica y comercial de reclamos de garantía reportados desde el portal de dealers. Tras autorizar, la reposición se atiende por FIFO desde el inventario central."
+        tabs={
+          <PageTabs
+            active={tab}
+            onChange={(id) => setTab(id as TabBandeja)}
+            tabs={[
+              {
+                id: 'pendientes',
+                label: 'Pendientes',
+                count: pendientes.length,
+                tone: pendientes.length > 0 ? 'danger' : 'default',
+              },
+              { id: 'autorizadas', label: 'Por reponer', count: autorizadas.length },
+              { id: 'historial', label: 'Historial', count: historial.length },
+            ]}
+          />
+        }
+      />
+
+      <MetricGrid columns={3}>
+        <MetricCard
+          label="Pendientes de autorización"
+          value={pendientes.length}
+          context="Reclamos de dealers pendientes de dictamen"
+          icon={Handshake}
+          tone="warn"
+          filled={pendientes.length > 0}
+        />
+        <MetricCard
+          label="Autorizadas por reponer"
+          value={autorizadas.length}
+          context="Aprobadas listas para asignación de serial FIFO"
+          icon={PackagePlus}
+          tone="danger"
+          filled={autorizadas.length > 0}
+        />
+        <MetricCard
+          label="Histórico resuelto"
+          value={historial.length}
+          context="Solicitudes ejecutadas o rechazadas"
+          icon={CheckCircle2}
+          tone="ok"
+          filled={historial.length > 0}
+        />
+      </MetricGrid>
+
+        {/* Bandeja: pendientes de autorización */}
+        {tab === 'pendientes' && (
+          <DataTable
+            title="Pendientes de autorización"
+            icon={<Handshake size={15} />}
+            density="compact"
+            search={{ value: q, onChange: setQ, placeholder: 'Buscar por serial o dealer…' }}
+            columns={[
+              {
+                key: 'serial',
+                header: 'Serial reclamado',
+                primary: true,
+                width: '160px',
+                sortable: true,
+                render: (h) => <SerialCell serial={h.serialOriginal} />,
+              },
+              {
+                key: 'dealer',
+                header: 'Distribuidor solicitante',
+                sortable: true,
+                render: (h) => {
+                  const nombre = dealerDe(h.serialOriginal)
+                  return <CellStack primary={nombre} secondary="Portal dealer" />
+                },
+              },
+              {
+                key: 'dx',
+                header: 'Diagnóstico técnico',
+                width: '160px',
+                render: (h) => {
+                  const b = baterias[h.serialOriginal]
+                  return b ? <StatusBadge catalogId={b.diagnosticoId} /> : <span className="text-ink-disabled">—</span>
+                },
+              },
+              {
+                key: 'vigencia',
+                header: 'Vigencia póliza',
+                width: '140px',
+                sortable: true,
+                sortValue: (h) => h.decisionVigencia,
+                render: (h) => (
+                  <Pill tone={vigenciaTone(h.decisionVigencia)}>
+                    {vigenciaLabel(h.decisionVigencia)}
+                  </Pill>
                 ),
-            },
-            { key: 'vigencia', header: 'Vigencia', render: (h) => h.decisionVigencia },
-            {
-              key: 'usd',
-              header: 'USD cliente',
-              render: (h) => h.resultadoCalculo.montoCliente.toFixed(2),
-            },
-            {
-              key: 'acc',
-              header: '',
-              render: (h) => (
-                <div className="flex gap-2">
+              },
+              {
+                key: 'usd',
+                header: 'Cobro a cliente',
+                align: 'right',
+                width: '130px',
+                sortable: true,
+                sortValue: (h) => h.resultadoCalculo.montoCliente,
+                render: (h) => <span className="tabular-nums font-semibold text-ink">{usd(h.resultadoCalculo.montoCliente)}</span>,
+              },
+              {
+                key: 'fecha',
+                header: 'Solicitud',
+                width: '120px',
+                sortable: true,
+                sortValue: (h) => h.fechaCalculo,
+                render: (h) => formatDate(h.fechaCalculo),
+              },
+              {
+                key: 'acciones',
+                header: 'Decisión',
+                align: 'right',
+                width: '180px',
+                render: (h) => (
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      leadingIcon={<Check size={13} />}
+                      onClick={() => {
+                        setAutorizarId(h.id)
+                        setMotivo('')
+                      }}
+                    >
+                      Autorizar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leadingIcon={<X size={13} />}
+                      onClick={() => {
+                        setRechazoId(h.id)
+                        setMotivo('')
+                      }}
+                    >
+                      Rechazar
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+            rows={pendientesFiltradas}
+            rowKey={(h) => h.id}
+            emptyTitle="Sin solicitudes pendientes"
+            emptyDescription="No hay reclamos de distribuidores pendientes de aprobación en este momento."
+          />
+        )}
+
+        {/* Autorizadas, a la espera de serial de reemplazo */}
+        {tab === 'autorizadas' && (
+          <DataTable
+            title="Autorizadas por reponer"
+            icon={<PackagePlus size={15} />}
+            density="compact"
+            search={{ value: q, onChange: setQ, placeholder: 'Buscar por serial o dealer…' }}
+            columns={[
+              {
+                key: 'serial',
+                header: 'Serial autorizado',
+                primary: true,
+                width: '160px',
+                sortable: true,
+                render: (h) => <SerialCell serial={h.serialOriginal} />,
+              },
+              {
+                key: 'dealer',
+                header: 'Distribuidor destino',
+                sortable: true,
+                render: (h) => dealerDe(h.serialOriginal),
+              },
+              {
+                key: 'estado',
+                header: 'Estado de honra',
+                width: '150px',
+                render: () => (
+                  <Pill tone="info" dot>
+                    Autorizada (FIFO)
+                  </Pill>
+                ),
+              },
+              {
+                key: 'fecha',
+                header: 'Fecha autorización',
+                width: '140px',
+                sortable: true,
+                sortValue: (h) => h.fechaCalculo,
+                render: (h) => formatDate(h.fechaCalculo),
+              },
+              {
+                key: 'acciones',
+                header: 'Reposición',
+                align: 'right',
+                width: '160px',
+                render: (h) => (
                   <Button
-                    variant="outlined"
-                    className="h-8 text-label-md"
-                    onClick={() => autorizar(h.id)}
-                  >
-                    Autorizar
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    className="h-8 text-label-md"
+                    size="sm"
+                    variant="primary"
+                    leadingIcon={<PackagePlus size={13} />}
                     onClick={() => {
-                      setRechazoId(h.id)
-                      setMotivo('')
+                      setReposicionId(h.id)
+                      setReemplazo('')
                     }}
                   >
-                    Rechazar
+                    Reponer (FIFO)
                   </Button>
-                </div>
-              ),
-            },
-          ]}
-          rows={pendientes}
-          rowKey={(h) => h.id}
-          emptyTitle="Sin solicitudes pendientes"
-          emptyDescription="Las solicitudes del portal dealer aparecen aquí."
-        />
-        <TextAreaField
-          label="Motivo / nota de autorización (opcional, queda en trazabilidad)"
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-        />
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="text-headline-sm">Autorizadas · pendientes de reposición ({autorizadas.length})</h2>
-        <DataTable
-          columns={[
-            {
-              key: 'serial',
-              header: 'Serial',
-              render: (h) => (
-                <Link className="font-code-serial text-viamar-700" to={`/serial/${h.serialOriginal}`}>
-                  {h.serialOriginal}
-                </Link>
-              ),
-            },
-            { key: 'dealer', header: 'Dealer', render: (h) => dealerDe(h.serialOriginal) },
-            { key: 'estado', header: 'Estado', render: () => 'AUTORIZADA' },
-            {
-              key: 'acc',
-              header: '',
-              render: (h) => (
-                <Button
-                  className="h-8 text-label-md"
-                  onClick={() => {
-                    setReposicionId(h.id)
-                    setReemplazo('')
-                  }}
-                >
-                  Reponer (FIFO)
-                </Button>
-              ),
-            },
-          ]}
-          rows={autorizadas}
-          rowKey={(h) => h.id}
-          emptyTitle="Sin reposiciones pendientes"
-          emptyDescription="Las solicitudes autorizadas esperan el serial de reemplazo."
-        />
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="text-headline-sm">Historial dealer</h2>
-        <DataTable
-          columns={[
-            {
-              key: 'serial',
-              header: 'Serial',
-              render: (h) => (
-                <Link className="font-code-serial text-viamar-700" to={`/serial/${h.serialOriginal}`}>
-                  {h.serialOriginal}
-                </Link>
-              ),
-            },
-            { key: 'estado', header: 'Estado', render: (h) => estadoDealerLabel(h.estado) },
-            {
-              key: 'reemplazo',
-              header: 'Reemplazo',
-              render: (h) =>
-                h.serialReemplazo ? (
-                  <Link className="font-code-serial text-viamar-700" to={`/serial/${h.serialReemplazo}`}>
-                    {h.serialReemplazo}
-                  </Link>
-                ) : (
-                  '—'
                 ),
-            },
-            {
-              key: 'motivo',
-              header: 'Motivo',
-              render: (h) => h.resultadoCalculo.motivoRechazo ?? '—',
-            },
-            { key: 'fecha', header: 'Fecha', render: (h) => formatDate(h.fechaCalculo) },
-          ]}
-          rows={historial}
-          rowKey={(h) => h.id}
-          emptyTitle="Sin historial"
-          emptyDescription="Las solicitudes decididas aparecen aquí."
-        />
-      </section>
+              },
+            ]}
+            rows={autorizadasFiltradas}
+            rowKey={(h) => h.id}
+            emptyTitle="Sin reposiciones pendientes"
+            emptyDescription="Todas las honras autorizadas ya tienen asignado su serial de reemplazo."
+          />
+        )}
 
+        {/* Historial de solicitudes ya resueltas */}
+        {tab === 'historial' && (
+          <DataTable
+            title="Historial de solicitudes"
+            icon={<CheckCircle2 size={15} />}
+            density="compact"
+            search={{ value: q, onChange: setQ, placeholder: 'Buscar en historial…' }}
+            columns={[
+              {
+                key: 'serial',
+                header: 'Serial original',
+                primary: true,
+                width: '160px',
+                sortable: true,
+                render: (h) => <SerialCell serial={h.serialOriginal} />,
+              },
+              {
+                key: 'estado',
+                header: 'Dictamen final',
+                width: '140px',
+                sortable: true,
+                render: (h) => {
+                  const est = estadoDealerLabel(h.estado)
+                  return (
+                    <Pill tone={h.estado === 'EJECUTADA' ? 'ok' : 'danger'} dot>
+                      {humanizeEstado(est)}
+                    </Pill>
+                  )
+                },
+              },
+              {
+                key: 'reemplazo',
+                header: 'Serial de reposición',
+                width: '170px',
+                render: (h) =>
+                  h.serialReemplazo ? (
+                    <SerialCell serial={h.serialReemplazo} />
+                  ) : (
+                    <span className="text-ink-disabled">—</span>
+                  ),
+              },
+              {
+                key: 'motivo',
+                header: 'Motivo / Nota',
+                render: (h) => (
+                  <span className="truncate text-body-sm text-ink-secondary">
+                    {h.resultadoCalculo.motivoRechazo ?? '—'}
+                  </span>
+                ),
+              },
+              {
+                key: 'fecha',
+                header: 'Fecha resolución',
+                align: 'right',
+                width: '130px',
+                sortable: true,
+                sortValue: (h) => h.fechaCalculo,
+                render: (h) => formatDate(h.fechaCalculo),
+              },
+            ]}
+            rows={historialFiltrado}
+            rowKey={(h) => h.id}
+            emptyTitle="Sin historial"
+            emptyDescription="Las solicitudes decididas y resueltas aparecerán en esta lista."
+          />
+        )}
+
+      {/* Modal: Confirmación de Autorización con nota */}
+      <Modal
+        open={autorizarId !== null}
+        title="Autorizar solicitud de garantía de dealer"
+        onClose={() => setAutorizarId(null)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setAutorizarId(null)}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={ejecutarAutorizacion}>
+              Confirmar autorización
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-body-sm text-ink-secondary">
+            Al autorizar esta solicitud, el sistema habilitará el despacho de un serial sustituto desde el stock central Viamar bajo la regla FIFO (más antiguo primero).
+          </p>
+          <TextAreaField
+            label="Nota de autorización (opcional, queda registrada en la bitácora)"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ej: Aprobado según reporte de chequeo #..."
+          />
+        </div>
+      </Modal>
+
+      {/* Modal: Rechazo con Motivo Obligatorio */}
       <Modal
         open={rechazoId !== null}
-        title="Rechazar solicitud"
+        title="Rechazar solicitud de garantía"
         onClose={() => setRechazoId(null)}
         footer={
           <>
-            <Button variant="outlined" onClick={() => setRechazoId(null)}>
+            <Button variant="secondary" onClick={() => setRechazoId(null)}>
               Cancelar
             </Button>
             <Button variant="danger" onClick={rechazar}>
-              Rechazar con motivo
+              Rechazar solicitud
             </Button>
           </>
         }
       >
-        <TextAreaField
-          label="Motivo del rechazo (obligatorio)"
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-        />
+        <div className="flex flex-col gap-3">
+          <p className="text-body-sm text-ink-secondary">
+            Indica claramente el motivo del rechazo para que el distribuidor y el cliente final tengan trazabilidad del dictamen.
+          </p>
+          <TextAreaField
+            label="Motivo del rechazo (obligatorio)"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ej: Batería fuera de plazo de garantía contractual..."
+          />
+        </div>
       </Modal>
 
+      {/* Modal: Asignación FIFO de Reposición */}
       <Modal
         open={reposicionId !== null}
-        title="Reposición FIFO desde stock Viamar"
+        title="Reposición FIFO desde inventario central Viamar"
         onClose={() => setReposicionId(null)}
         footer={
           <>
-            <Button variant="outlined" onClick={() => setReposicionId(null)}>
+            <Button variant="secondary" onClick={() => setReposicionId(null)}>
               Cancelar
             </Button>
-            <Button onClick={confirmarReposicion} disabled={!reemplazo}>
-              Confirmar reemplazo
+            <Button variant="primary" onClick={confirmarReposicion} disabled={!reemplazo}>
+              Confirmar reposición
             </Button>
           </>
         }
       >
-        <SelectField
-          label="Serial de reemplazo (mismo artículo, más antiguo primero)"
-          value={reemplazo}
-          onChange={(e) => setReemplazo(e.target.value)}
-        >
-          <option value="">Seleccione…</option>
-          {candidatos.map((b, i) => (
-            <option key={b.serial} value={b.serial}>
-              {b.serial} · ingreso {b.fechaIngreso.slice(0, 10)}{i === 0 ? ' · FIFO' : ''}
-            </option>
-          ))}
-        </SelectField>
-        {candidatos.length === 0 ? (
+        <div className="flex flex-col gap-3">
           <p className="text-body-sm text-ink-secondary">
-            Sin stock Viamar del mismo artículo para reponer.
+            El motor de inventario selecciona los seriales disponibles del mismo artículo ordenados por fecha de ingreso (el más antiguo primero).
           </p>
-        ) : null}
+          <SelectField
+            label="Serial de reemplazo (mismo artículo, FIFO)"
+            value={reemplazo}
+            onChange={(e) => setReemplazo(e.target.value)}
+          >
+            <option value="">Seleccione serial…</option>
+            {candidatos.map((b, i) => (
+              <option key={b.serial} value={b.serial}>
+                {b.serial} · ingreso {b.fechaIngreso.slice(0, 10)}{i === 0 ? ' · RECOMENDADO FIFO' : ''}
+              </option>
+            ))}
+          </SelectField>
+          {candidatos.length === 0 ? (
+            <p className="text-body-sm text-critical">
+              No hay stock central disponible de este artículo para reposición inmediata.
+            </p>
+          ) : null}
+        </div>
       </Modal>
     </div>
   )
