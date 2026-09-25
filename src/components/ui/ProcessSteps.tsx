@@ -34,17 +34,17 @@ export function ProcessSteps({ steps, current, aborted = false, className }: Pro
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-label-sm font-bold tabular-nums',
+                  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-label-md font-bold tabular-nums transition-colors duration-fast',
                   failed && 'bg-critical text-white',
-                  !failed && done && 'bg-success text-white',
-                  !failed && active && 'bg-viamar-500 text-white',
-                  !failed && !done && !active && 'bg-neutral-200 text-neutral-600',
+                  !failed && done && 'bg-success-soft text-success',
+                  !failed && active && 'bg-viamar-500 text-white shadow-[0_0_0_4px_rgba(32,106,169,0.14)]',
+                  !failed && !done && !active && 'bg-neutral-100 text-ink-tertiary',
                 )}
               >
                 {failed ? (
-                  <X size={12} strokeWidth={3} />
+                  <X size={14} strokeWidth={3} />
                 ) : done ? (
-                  <Check size={12} strokeWidth={3} />
+                  <Check size={14} strokeWidth={3} />
                 ) : (
                   i + 1
                 )}
@@ -73,7 +73,7 @@ export function ProcessSteps({ steps, current, aborted = false, className }: Pro
             {i < steps.length - 1 ? (
               <span
                 aria-hidden="true"
-                className={cn('mx-2 h-px w-8 shrink-0', done ? 'bg-success' : 'bg-line-strong')}
+                className={cn('mx-2.5 h-[3px] w-10 shrink-0 rounded-full', done ? 'bg-success/70' : 'bg-neutral-200')}
               />
             ) : null}
           </li>
@@ -101,7 +101,7 @@ export function ProgressBar({
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <div
-        className="h-1.5 w-full min-w-[44px] max-w-[96px] overflow-hidden rounded-full bg-neutral-200"
+        className="h-2 w-full min-w-[44px] max-w-[96px] overflow-hidden rounded-full bg-neutral-100"
         role="progressbar"
         aria-valuenow={done}
         aria-valuemin={0}
@@ -110,7 +110,7 @@ export function ProgressBar({
         <span
           className={cn(
             'block h-full rounded-full transition-[width] duration-300 ease-brand',
-            complete ? 'bg-success' : 'bg-viamar-500',
+            complete ? 'bg-success' : 'bg-gradient-to-r from-viamar-500 to-viamar-accent',
           )}
           style={{ width: `${pct}%` }}
         />

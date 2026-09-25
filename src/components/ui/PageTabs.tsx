@@ -23,15 +23,14 @@ type Props = {
  * Pestañas de página: cambian el conjunto de datos que se está mirando, no
  * la sección de una tarjeta.
  *
- * La activa se eleva sobre el fondo —blanca, con sombra mínima y un filo azul
- * inferior— y las demás quedan hundidas en gris. Así la fila se lee como una
- * hilera de fichas y la seleccionada parece continuar en el panel de abajo,
- * que es justo la relación que tienen.
+ * Mismas pestañas subrayadas que Dashboard y Trazabilidad: texto sobre el
+ * fondo, cifra en gris y un filo azul bajo la activa que se apoya en la línea
+ * base de la fila.
  */
 export function PageTabs({ tabs, active, onChange, action, className }: Props) {
   return (
-    <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1.5', className)}>
-      <div role="tablist" className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+    <div className={cn('flex flex-wrap items-end gap-x-3 gap-y-1.5 border-b border-line', className)}>
+      <div role="tablist" className="flex min-w-0 flex-1 flex-wrap items-end gap-1">
         {tabs.map((t) => {
           const on = t.id === active
           return (
@@ -42,11 +41,9 @@ export function PageTabs({ tabs, active, onChange, action, className }: Props) {
               aria-selected={on}
               onClick={() => onChange(t.id)}
               className={cn(
-                'relative inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-3.5',
-                'text-label-lg transition-colors duration-fast ease-brand',
-                on
-                  ? 'bg-white text-ink shadow-xs ring-1 ring-inset ring-line'
-                  : 'bg-neutral-100 text-ink-secondary hover:bg-neutral-200/70 hover:text-ink',
+                'relative -mb-px inline-flex items-center gap-1.5 whitespace-nowrap px-4 pb-2.5 pt-1',
+                'text-label-lg transition-colors duration-fast',
+                on ? 'text-viamar-600' : 'text-ink hover:text-viamar-600',
               )}
             >
               {t.icon ? (
@@ -58,31 +55,26 @@ export function PageTabs({ tabs, active, onChange, action, className }: Props) {
               {t.count !== undefined ? (
                 <span
                   className={cn(
-                    'tabular-nums',
-                    on
-                      ? t.tone === 'danger'
-                        ? 'text-critical'
-                        : 'text-viamar-600'
-                      : 'text-ink-tertiary',
+                    'text-label-md tabular-nums',
+                    t.tone === 'danger' ? 'text-critical' : on ? 'text-viamar-400' : 'text-ink-tertiary',
                   )}
                 >
                   {t.count}
                 </span>
               ) : null}
-
-              {/* Filo inferior: ata la pestaña activa al panel que hay debajo. */}
-              {on ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-viamar-500"
-                />
-              ) : null}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute inset-x-0 bottom-0 h-[2.5px] rounded-full transition-colors duration-fast',
+                  on ? 'bg-viamar-600' : 'bg-transparent',
+                )}
+              />
             </button>
           )
         })}
       </div>
 
-      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+      {action ? <div className="flex shrink-0 items-center gap-2 pb-2">{action}</div> : null}
     </div>
   )
 }

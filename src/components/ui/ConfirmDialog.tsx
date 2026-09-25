@@ -1,3 +1,4 @@
+import { CircleHelp, TriangleAlert } from 'lucide-react'
 import { useUiStore } from '../../stores/uiStore'
 import { Button } from './Button'
 import { Modal } from './Modal'
@@ -9,6 +10,8 @@ export function ConfirmDialog() {
     <Modal
       open={Boolean(confirm)}
       title={confirm?.title ?? ''}
+      icon={confirm?.danger ? TriangleAlert : CircleHelp}
+      tone={confirm?.danger ? 'danger' : 'brand'}
       onClose={() => close(false)}
       footer={
         <>
@@ -21,7 +24,7 @@ export function ConfirmDialog() {
         </>
       }
     >
-      <p className="text-body-md">{confirm?.message}</p>
+      <p className="text-body-md text-ink-secondary">{confirm?.message}</p>
     </Modal>
   )
 }

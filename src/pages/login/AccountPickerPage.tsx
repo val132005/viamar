@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import { ROLE_LABEL } from '../../domain/permissions'
 import { BrandMesh } from '../../components/brand/BrandMesh'
 import { UserAvatar } from '../../components/brand/UserAvatar'
@@ -20,43 +21,52 @@ export function AccountPickerPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
-      <div className="absolute inset-0 bg-viamar-900">
+      <div className="absolute inset-0">
         <BrandMesh />
       </div>
-      <div className="relative w-full max-w-[460px] max-h-[min(90vh,840px)] surface overflow-hidden flex flex-col">
-        <div className="p-5 border-b border-app-border bg-gradient-to-br from-white to-viamar-50 shrink-0">
-          <ViamarLogo className="h-7 w-auto mb-3" />
-          <div className="flex items-center gap-2 mb-1">
-            <MicrosoftMark className="h-4 w-4" />
-            <h1 className="text-[20px] font-semibold text-viamar-900">Seleccionar una cuenta</h1>
+      <div className="relative flex w-full max-w-[460px] flex-col items-center gap-6">
+      <ViamarLogo className="logo-negativo h-11 w-auto" />
+      <div className="surface-raised w-full max-h-[min(80vh,760px)] overflow-hidden flex flex-col">
+        <div className="shrink-0 border-b border-line-subtle px-5 pb-4 pt-5">
+          <div className="flex items-center gap-2.5 mb-1">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-viamar-50">
+              <MicrosoftMark className="h-4 w-4" />
+            </span>
+            <h1 className="text-headline-lg text-ink">Seleccionar una cuenta</h1>
           </div>
           <p className="text-body-sm text-ink-secondary">
             Siete cuentas demo. El token simulado incluye el rol y, si aplica, el dealer.
           </p>
         </div>
-        <ul className="overflow-y-auto">
+        <ul className="scroll-slim overflow-y-auto">
           {DEMO_ACCOUNTS.map((account) => (
-            <li key={account.id} className="border-b border-app-border last:border-b-0">
+            <li key={account.id} className="border-b border-[#edf1f6] last:border-b-0">
               <button
                 type="button"
                 onClick={() => choose(account.id)}
-                className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-viamar-50 transition-colors"
+                className="group w-full flex items-center gap-3 px-5 py-3 text-left transition-colors duration-fast hover:bg-[#f7fafd] hover:shadow-[inset_3px_0_0_#0463dc]"
               >
                 <UserAvatar user={account} />
-                <span className="min-w-0">
-                  <span className="block text-label-md truncate">{account.nombre}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-label-lg text-ink truncate">{account.nombre}</span>
                   <span className="block text-body-sm text-ink-secondary truncate">
                     {account.email}
                   </span>
-                  <span className="block text-label-sm text-viamar-700">
+                  <span className="block text-label-sm text-viamar-600">
                     {ROLE_LABEL[account.rol]}
                     {account.dealerNombre ? ` · ${account.dealerNombre}` : ''}
                   </span>
                 </span>
+                <ChevronRight
+                  size={16}
+                  className="shrink-0 text-ink-tertiary transition-transform duration-fast group-hover:translate-x-0.5 group-hover:text-viamar-500"
+                  aria-hidden="true"
+                />
               </button>
             </li>
           ))}
         </ul>
+      </div>
       </div>
     </div>
   )

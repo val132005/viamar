@@ -14,10 +14,11 @@ export type QueueItem = {
   tone?: 'default' | 'warn' | 'danger'
 }
 
+/* Azul de marca por omisión; el rojo queda para lo que no puede esperar. */
 const TONE: Record<NonNullable<QueueItem['tone']>, { icon: string; count: string }> = {
-  default: { icon: 'bg-viamar-50 text-viamar-600 ring-viamar-100', count: 'text-viamar-700' },
-  warn: { icon: 'bg-warning-soft text-warning ring-warning-border/60', count: 'text-warning' },
-  danger: { icon: 'bg-critical-soft text-critical ring-critical-border/60', count: 'text-critical' },
+  default: { icon: 'bg-viamar-50 text-viamar-600', count: 'text-ink' },
+  warn: { icon: 'bg-warning-soft text-warning', count: 'text-warning' },
+  danger: { icon: 'bg-critical-soft text-critical', count: 'text-critical' },
 }
 
 /**
@@ -63,11 +64,11 @@ export function TaskQueue({ items, className }: { items: QueueItem[]; className?
             >
               <span
                 className={cn(
-                  'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset',
+                  'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
                   tone.icon,
                 )}
               >
-                <Icon size={16} strokeWidth={1.9} aria-hidden="true" />
+                <Icon size={17} strokeWidth={2} aria-hidden="true" />
               </span>
 
               <span className="min-w-0 flex-1">

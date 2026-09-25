@@ -234,7 +234,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         type="button"
         aria-label="Cerrar paleta de comandos"
         onClick={onClose}
-        className="absolute inset-0 bg-viamar-950/30"
+        className="absolute inset-0 bg-[#0b2b4c]/35 backdrop-blur-[3px]"
       />
 
       <div
@@ -243,17 +243,17 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         aria-label="Paleta de comandos"
         className="relative w-full max-w-xl overflow-hidden rounded-xl border border-line bg-white shadow-lg animate-fade-in"
       >
-        <div className="flex items-center gap-2.5 border-b border-line px-3.5">
-          <Search size={17} className="shrink-0 text-ink-tertiary" aria-hidden="true" />
+        <div className="flex items-center gap-2.5 border-b border-line-subtle px-4">
+          <Search size={17} className="shrink-0 text-[#6f7d90]" aria-hidden="true" />
           <input
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar módulos, acciones o seriales…"
             aria-label="Buscar"
-            className="h-12 flex-1 bg-transparent text-body-lg text-ink placeholder:text-ink-tertiary focus:outline-none"
+            className="h-[52px] flex-1 bg-transparent text-body-lg text-ink placeholder:text-[#8591a3] focus:outline-none"
           />
-          <kbd className="shrink-0 rounded-xs border border-line px-1.5 py-0.5 text-label-sm text-ink-tertiary">
+          <kbd className="shrink-0 rounded-[4px] border border-[#dbe3ed] bg-[#f0f5fa] px-1.5 py-0.5 text-label-sm text-[#5f6d80]">
             Esc
           </kbd>
         </div>
@@ -277,7 +277,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               return (
                 <li key={c.id}>
                   {nuevoGrupo ? (
-                    <p className="px-3.5 pb-1 pt-2 text-overline uppercase text-ink-tertiary">
+                    <p className="px-4 pb-1 pt-2.5 text-overline uppercase text-ink-tertiary">
                       {c.grupo}
                     </p>
                   ) : null}
@@ -287,17 +287,21 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                     onMouseEnter={() => setCursor(i)}
                     onClick={() => ejecutar(c)}
                     className={cn(
-                      'flex w-full items-center gap-2.5 px-3.5 py-2 text-left transition-colors duration-instant',
-                      activo ? 'bg-surface-selected' : 'hover:bg-surface-hover',
+                      'flex w-full items-center gap-3 px-4 py-1.5 text-left transition-colors duration-instant',
+                      activo ? 'bg-[#eaf3fd] shadow-[inset_3px_0_0_#0463dc]' : 'hover:bg-[#f7fafd]',
                     )}
                   >
-                    <Icon
-                      size={15}
-                      className={cn('shrink-0', activo ? 'text-viamar-600' : 'text-ink-tertiary')}
+                    <span
+                      className={cn(
+                        'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-instant',
+                        activo ? 'bg-white text-viamar-600' : 'bg-viamar-50 text-viamar-500',
+                      )}
                       aria-hidden="true"
-                    />
+                    >
+                      <Icon size={15} />
+                    </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-body-sm text-ink">{c.label}</span>
+                      <span className="block truncate text-label-lg text-ink">{c.label}</span>
                       {c.hint ? (
                         <span className="block truncate text-body-xs text-ink-tertiary">
                           {c.hint}
@@ -314,7 +318,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           )}
         </ul>
 
-        <footer className="flex items-center gap-3 border-t border-line bg-surface-subtle px-3.5 py-2 text-body-xs text-ink-tertiary">
+        <footer className="flex items-center gap-3 border-t border-[#edf1f6] bg-[#f7fafd] px-4 py-2 text-body-xs text-ink-tertiary">
           <span className="flex items-center gap-1">
             <kbd className="rounded-xs border border-line bg-white px-1 py-px">↑</kbd>
             <kbd className="rounded-xs border border-line bg-white px-1 py-px">↓</kbd>

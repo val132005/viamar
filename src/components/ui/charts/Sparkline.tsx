@@ -8,7 +8,7 @@ export type SparkTone = 'brand' | 'ok' | 'warn' | 'danger' | 'accent' | 'neutral
 const STROKE: Record<SparkTone, string> = {
   brand: '#206AA9',
   ok: '#1F7A34',
-  warn: '#B4690E',
+  warn: '#4A5D78',
   danger: '#C0392F',
   accent: '#039BE5',
   neutral: '#9AA7B6',

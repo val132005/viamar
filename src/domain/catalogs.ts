@@ -33,13 +33,13 @@ export const DIAGNOSTICO_CATALOG: CatalogItem[] = [
   {
     id: 'DESCARGADA',
     label: 'Descargada',
-    tone: { bg: '#FDF3E4', border: '#F2D5A8', fg: '#8A5008' },
+    tone: { bg: '#EEF2F7', border: '#C9D3E0', fg: '#33455E' },
     icon: 'charge',
   },
   {
     id: 'PARA_GARANTIA',
     label: 'Para garantía',
-    tone: { bg: '#FDEEE6', border: '#F6C9AE', fg: '#9A4514' },
+    tone: { bg: '#FCEEF2', border: '#F2C6D2', fg: '#9D1C44' },
     icon: 'shield',
   },
   {
@@ -60,15 +60,15 @@ export const CERTIFICADO_CATALOG: CatalogItem[] = [
   {
     id: 'E',
     label: 'CERT-E',
-    tone: { bg: '#E6F2FB', border: '#B3D8F0', fg: '#0A5E92' },
+    tone: { bg: '#E8F5EC', border: '#B6DFC2', fg: '#14602A' },
     icon: 'cert-e',
   },
   {
     id: 'C',
-    /* Único tono fuera de la familia azul: un certificado cancelado debe
-       distinguirse de un vigente de un vistazo, sin leer la etiqueta. */
+    /* Vigente en verde y cancelado en rojo: los mismos tonos que la dona de
+       certificados, para que etiqueta y gráfico se lean igual. */
     label: 'CERT-C · Cancelado',
-    tone: { bg: '#F1EFFA', border: '#CFC8EC', fg: '#4B3F8F' },
+    tone: { bg: '#FDECEB', border: '#F3BFBA', fg: '#9B2C24' },
     icon: 'cert-c',
   },
 ]
@@ -89,7 +89,7 @@ export const ORIGEN_CATALOG: CatalogItem[] = [
   {
     id: 'SMART',
     label: 'SMART Legacy',
-    tone: { bg: '#FDF3E4', border: '#F2D5A8', fg: '#8A5008' },
+    tone: { bg: '#EEF2F7', border: '#C9D3E0', fg: '#33455E' },
     icon: 'smart',
   },
   {

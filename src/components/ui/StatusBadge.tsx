@@ -61,8 +61,10 @@ export function StatusBadge({ catalogId, item, variant = 'soft', size = 'sm', cl
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm ring-1 ring-inset',
-        size === 'sm' ? 'px-1.5 py-0.5 text-label-md' : 'px-2 py-1 text-label-lg',
+        /* La etiqueta de estado de la tabla del panel: en tablas va sólo con
+           texto; el tamaño grande (fichas y cabeceras) conserva el icono. */
+        'inline-flex items-center gap-1.5 whitespace-nowrap font-semibold leading-none',
+        size === 'sm' ? 'h-[21px] rounded-[4px] px-2 text-[11.5px]' : 'h-[26px] rounded-[5px] px-2.5 text-[12.5px]',
         className,
       )}
       style={{
@@ -72,7 +74,7 @@ export function StatusBadge({ catalogId, item, variant = 'soft', size = 'sm', cl
         color: resolved.tone.fg,
       }}
     >
-      <Icon size={size === 'sm' ? 12 : 14} strokeWidth={2.2} aria-hidden="true" />
+      {size === 'md' ? <Icon size={14} strokeWidth={2.2} aria-hidden="true" /> : null}
       {resolved.label}
     </span>
   )

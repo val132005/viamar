@@ -1,10 +1,19 @@
 import { useMemo, useState } from 'react'
 import {
   BadgeCheck,
+  Clock,
+  FileX2,
   Handshake,
+  Package,
   Send,
+  ShieldCheck,
   Store,
+  UserRound,
 } from 'lucide-react'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { SectionCard } from '../../components/ui/SectionCard'
+import { MetricGrid } from '../../components/ui/Workspace'
+import { cn } from '../../lib/cn'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
 import { FormField, SelectField } from '../../components/ui/FormField'
@@ -79,8 +88,10 @@ export function DealerSellPage() {
     toast('Venta registrada y certificado digital emitido con éxito', 'ok')
   }
 
+  const certsMios = useCertificateStore((s) => s.certificados).filter((c) => c.dealerId === user?.dealerId)
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         breadcrumbs={[
           { label: 'Portal distribuidor', to: '/dealer' },
@@ -90,13 +101,27 @@ export function DealerSellPage() {
         description="Emisión del certificado de garantía digital para el cliente final al momento de la venta en mostrador."
       />
 
-      <div className="grid gap-4 md:grid-cols-3 max-w-5xl">
+      <MetricGrid columns={3}>
+        <MetricCard label="Unidades en su inventario" value={stock.length} icon={Package} tone="brand" context="Disponibles para la venta" />
+        <MetricCard
+          label="Certificados emitidos"
+          value={certsMios.length}
+          icon={BadgeCheck}
+          tone="ok"
+          context={`${certsMios.filter((c) => c.estado === 'E').length} vigentes`}
+        />
+        <MetricCard label="Clientes registrados" value={clientes.length} icon={UserRound} tone="accent" context="Receptores posibles del certificado" />
+      </MetricGrid>
+
+      <div className="grid items-start gap-3.5 md:grid-cols-3">
         {/* Formulario */}
-        <div className="surface p-4 flex flex-col gap-3 md:col-span-2">
-          <h2 className="text-headline-sm text-ink flex items-center gap-2">
-            <Store size={16} className="text-viamar-500" />
-            Datos de la transacción
-          </h2>
+        <SectionCard
+          title="Datos de la transacción"
+          description="La venta activa la garantía digital desde hoy."
+          icon={<Store />}
+          className="md:col-span-2"
+          bodyClassName="flex flex-col gap-3.5"
+        >
 
           <SelectField
             label="Batería en inventario local"
@@ -105,7 +130,7 @@ export function DealerSellPage() {
           >
             {stock.map((b) => (
               <option key={b.serial} value={b.serial}>
-                {b.serial} · {b.articuloId}
+                {b.serial} · {articulos.find((a) => a.id === b.articuloId)?.descripcion ?? b.articuloId}
               </option>
             ))}
           </SelectField>
@@ -130,11 +155,10 @@ export function DealerSellPage() {
               <span className="text-body-xs text-critical">No posee unidades en inventario para vender.</span>
             )}
           </div>
-        </div>
+        </SectionCard>
 
         {/* Resumen lateral de la batería */}
-        <div className="surface p-4 flex flex-col gap-3">
-          <h3 className="text-label-lg font-semibold text-ink">Ficha de la unidad</h3>
+        <SectionCard title="Ficha de la unidad" icon={<Package />}>
           {bateriaSel ? (
             <div className="flex flex-col gap-2.5 text-body-sm">
               <div>
@@ -159,7 +183,7 @@ export function DealerSellPage() {
           ) : (
             <p className="text-body-xs text-ink-disabled">Seleccione un serial para previsualizar especificaciones.</p>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   )
@@ -204,8 +228,12 @@ export function DealerHonraPage() {
     }
   }
 
+  const ejecutadas = mine.filter((h) => h.estado === 'EJECUTADA').length
+  const enCurso = mine.filter((h) => h.estado === 'SOLICITADA' || h.estado === 'APROBADA').length
+  const rechazadas = mine.filter((h) => h.estado === 'RECHAZADA').length
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         breadcrumbs={[
           { label: 'Portal distribuidor', to: '/dealer' },
@@ -215,13 +243,20 @@ export function DealerHonraPage() {
         description="Reporte de reclamos de garantía para baterías comercializadas a clientes y seguimiento de resoluciones y reposiciones de fábrica."
       />
 
+      <MetricGrid columns={4}>
+        <MetricCard label="Solicitudes" value={mine.length} icon={Handshake} tone="brand" context="Reclamos registrados por su punto" />
+        <MetricCard label="En curso" value={enCurso} icon={Clock} tone="accent" context="Pendientes o por reponer" />
+        <MetricCard label="Ejecutadas" value={ejecutadas} icon={ShieldCheck} tone="ok" filled={ejecutadas > 0} context="Con serial de reposición asignado" />
+        <MetricCard label="Rechazadas" value={rechazadas} icon={FileX2} tone="danger" filled={rechazadas > 0} context="Con motivo de rechazo" />
+      </MetricGrid>
+
       {/* Formulario compacto para nueva solicitud */}
-      <section className="surface shrink-0 p-3.5">
-        <h2 className="text-label-lg font-semibold text-ink mb-2 flex items-center gap-1.5">
-          <Handshake size={15} className="text-viamar-500" />
-          Nueva solicitud de garantía
-        </h2>
-        <div className="flex flex-wrap items-end gap-2.5">
+      <SectionCard
+        title="Nueva solicitud de garantía"
+        description="Seleccione una batería vendida y la capacidad medida en mostrador."
+        icon={<Handshake />}
+      >
+        <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[220px] flex-1">
             <SelectField
               label="Serial vendido a cliente"
@@ -247,14 +282,14 @@ export function DealerHonraPage() {
             Solicitar honra
           </Button>
         </div>
-      </section>
+      </SectionCard>
 
       {/* Master / Detail Split Layout */}
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-12">
+      <div className="grid items-start gap-3.5 lg:grid-cols-12">
         {/* Columna Izquierda: Master List (7 cols) */}
         <div className="min-h-0 flex flex-col lg:col-span-7">
           <DataTable
-            density="compact"
+            fill={false}
             title="Mis solicitudes registradas"
             columns={[
               {
@@ -320,7 +355,7 @@ export function DealerHonraPage() {
         <div className="min-h-0 flex flex-col lg:col-span-5">
           {detalle ? (
             <section className="surface flex min-h-0 flex-1 flex-col overflow-hidden">
-              <header className="border-b border-line px-3.5 py-2.5 shrink-0 bg-surface-subtle">
+              <header className="shrink-0 border-b border-line-subtle bg-gradient-to-br from-white to-viamar-50/70 px-4 pb-3 pt-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <SerialCell serial={detalle.serialOriginal} className="text-label-lg font-bold" />
@@ -333,7 +368,7 @@ export function DealerHonraPage() {
                   </span>
                 </div>
 
-                <div className="mt-2 grid grid-cols-2 gap-2 text-body-xs">
+                <div className="mt-3 grid grid-cols-2 gap-2.5 text-body-xs">
                   <div>
                     <span className="text-ink-tertiary block">Vigencia póliza</span>
                     <span className="text-ink font-semibold">{vigenciaLabel(detalle.decisionVigencia)}</span>
@@ -362,8 +397,8 @@ export function DealerHonraPage() {
                 </div>
               </header>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-3.5 scroll-slim">
-                <h3 className="text-label-md font-semibold text-ink mb-2.5">
+              <div className="scroll-slim max-h-[560px] min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
+                <h3 className="mb-3 text-headline-sm text-ink">
                   Línea de tiempo de eventos
                 </h3>
                 <Timeline
@@ -379,7 +414,7 @@ export function DealerHonraPage() {
               </div>
             </section>
           ) : (
-            <div className="surface flex min-h-0 flex-1 items-center justify-center p-6 text-center">
+            <div className={cn('surface flex min-h-[240px] flex-1 items-center justify-center p-6 text-center')}>
               <p className="text-body-sm text-ink-tertiary">
                 Seleccione una solicitud para inspeccionar su trazabilidad detallada.
               </p>
@@ -425,15 +460,23 @@ export function DealerCertsPage() {
         ]}
         title="Certificados emitidos"
         description="Garantías digitales activadas en mostrador para los clientes de su punto de venta."
-        meta={[
-          { label: 'Certificados totales', value: mine.length },
-          { label: 'Vigentes (CERT-E)', value: vigentes },
-          { label: 'Cancelados (CERT-C)', value: cancelados, tone: cancelados > 0 ? 'critical' : 'default' },
-        ]}
       />
 
+      <MetricGrid columns={3}>
+        <MetricCard label="Certificados totales" value={mine.length} icon={BadgeCheck} tone="brand" context="Emitidos en su punto de venta" />
+        <MetricCard label="Vigentes (CERT-E)" value={vigentes} icon={ShieldCheck} tone="ok" filled={vigentes > 0} context="Garantía activa del cliente" />
+        <MetricCard
+          label="Cancelados (CERT-C)"
+          value={cancelados}
+          icon={FileX2}
+          tone="danger"
+          filled={cancelados > 0}
+          context="Bloquean la honra del serial"
+        />
+      </MetricGrid>
+
       <DataTable
-        density="compact"
+        title="Mis certificados"
         search={{ value: q, onChange: setQ, placeholder: 'Buscar por serial o NCF…' }}
         columns={[
           {

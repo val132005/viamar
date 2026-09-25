@@ -28,7 +28,7 @@ export function MetricGrid({
     6: 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6',
   }
   return (
-    <div className={cn('grid shrink-0 gap-2.5', COLS[columns], className)}>{children}</div>
+    <div className={cn('grid shrink-0 gap-3.5', COLS[columns], className)}>{children}</div>
   )
 }
 
@@ -71,7 +71,7 @@ export function WorkspaceRow({
   return (
     <div
       className={cn(
-        'grid gap-3',
+        'grid gap-3.5',
         LAYOUTS[layout],
         fill ? 'min-h-0 flex-1' : 'shrink-0',
         className,

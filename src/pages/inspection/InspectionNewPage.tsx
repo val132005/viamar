@@ -1,9 +1,23 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ClipboardList } from 'lucide-react'
+import {
+  CalendarDays,
+  ClipboardCheck,
+  ClipboardList,
+  Plus,
+  Stethoscope,
+  TriangleAlert,
+  Warehouse,
+  X,
+} from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { FormField, SelectField } from '../../components/ui/FormField'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { SectionCard } from '../../components/ui/SectionCard'
+import { SerialCell } from '../../components/ui/SerialCell'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { useBatteryStore } from '../../stores/batteryStore'
 import { iso } from '../../domain/dates'
 import { sugerirDiagnostico } from '../../domain/diagnosis'
 import type { LineaDiagnostico } from '../../domain/entities'
@@ -28,6 +42,7 @@ export function InspectionNewPage() {
   const solicitudes = useInspectionStore((s) => s.solicitudes)
   const addSolicitud = useInspectionStore((s) => s.addSolicitud)
   const visibles = useVisibleBatteries()
+  const articulos = useBatteryStore((s) => s.articulos)
 
   const [dealerId, setDealerId] = useState(dealers[0]?.id ?? '')
   const [centroId, setCentroId] = useState(centros[0]?.id ?? '')
@@ -111,98 +126,156 @@ export function InspectionNewPage() {
     navigate(`/gestion-tecnica/${id}`)
   }
 
+  const dealer = dealers.find((d) => d.id === dealerId)
+
   return (
-    <div className="flex flex-col gap-4">
-      <Link className="text-label-md text-viamar-700" to="/gestion-tecnica">
-        ← Volver a gestión técnica
-      </Link>
-      <h1 className="text-headline-lg text-viamar-800">Nueva solicitud de chequeo</h1>
+    <div className="flex flex-col gap-4 pb-2">
+      <PageHeader
+        breadcrumbs={[{ label: 'Gestión técnica', to: '/gestion-tecnica' }, { label: 'Nueva solicitud' }]}
+        title="Nueva solicitud de chequeo"
+        description="Programa una visita técnica: elige el distribuidor, el centro de carga y las baterías que se van a medir."
+        actions={
+          <>
+            <Link to="/gestion-tecnica">
+              <Button variant="outlined">Cancelar</Button>
+            </Link>
+            <Button leadingIcon={<ClipboardCheck size={15} />} onClick={crear}>
+              Crear solicitud
+            </Button>
+          </>
+        }
+      />
 
-      <section className="grid gap-3 surface p-4 md:grid-cols-2">
-        <SelectField label="Dealer" value={dealerId} onChange={(e) => setDealerId(e.target.value)}>
-          {dealers.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.nombre}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField label="Centro de carga" value={centroId} onChange={(e) => setCentroId(e.target.value)}>
-          {centros.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
-        </SelectField>
-        <FormField
-          label="Fecha de visita"
-          type="date"
-          value={fechaVisita}
-          onChange={(e) => setFechaVisita(e.target.value)}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <SelectField label="Vendedor" value={vendedorId} onChange={(e) => setVendedorId(e.target.value)}>
-            {DEMO_ACCOUNTS.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField label="Supervisor" value={supervisorId} onChange={(e) => setSupervisorId(e.target.value)}>
-            {DEMO_ACCOUNTS.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre}
-              </option>
-            ))}
-          </SelectField>
-        </div>
-      </section>
+      {error ? (
+        <p
+          role="alert"
+          className="flex items-center gap-3 rounded-xl border border-critical-border/60 bg-gradient-to-br from-critical-soft/40 to-critical-soft/80 px-4 py-2.5 text-body-sm text-critical-text"
+        >
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 text-critical">
+            <TriangleAlert size={16} aria-hidden="true" />
+          </span>
+          {error}
+        </p>
+      ) : null}
 
-      <section className="flex flex-col gap-2 surface p-4">
-        <h2 className="text-headline-sm text-viamar-800">Seriales ({lineas.length})</h2>
-        {lineas.length === 0 ? (
-          <p className="text-body-sm text-ink-secondary">
-            Selecciona seriales del inventario del dealer para agregarlos como líneas.
-          </p>
-        ) : (
-          lineas.map((l) => (
-            <div key={l.serial} className="grid grid-cols-2 gap-2 rounded bg-app-surface-alt p-3 md:grid-cols-5 md:items-end">
-              <p className="font-code-serial text-viamar-700 md:col-span-1 col-span-2">{l.serial}</p>
-              <FormField label="Voltaje (V)" type="number" step="0.1" value={l.voltaje} onChange={(e) => editar(l.serial, 'voltaje', e.target.value)} />
-              <FormField label="Densidad" type="number" step="0.01" value={l.densidad} onChange={(e) => editar(l.serial, 'densidad', e.target.value)} />
-              <FormField label="CCA (%)" type="number" step="1" value={l.capacidadMedida} onChange={(e) => editar(l.serial, 'capacidadMedida', e.target.value)} />
-              <Button variant="ghost" className="h-8 text-label-md" onClick={() => quitar(l.serial)}>
-                Quitar
-              </Button>
+      <div className="grid items-start gap-3.5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <SectionCard title="Datos de la visita" icon={<CalendarDays />}>
+            <div className="grid gap-3.5 md:grid-cols-2">
+              <SelectField label="Dealer" value={dealerId} onChange={(e) => setDealerId(e.target.value)}>
+                {dealers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nombre}
+                  </option>
+                ))}
+              </SelectField>
+              <SelectField label="Centro de carga" value={centroId} onChange={(e) => setCentroId(e.target.value)}>
+                {centros.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </SelectField>
+              <FormField
+                label="Fecha de visita"
+                type="date"
+                value={fechaVisita}
+                onChange={(e) => setFechaVisita(e.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-3.5">
+                <SelectField label="Vendedor" value={vendedorId} onChange={(e) => setVendedorId(e.target.value)}>
+                  {DEMO_ACCOUNTS.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}
+                    </option>
+                  ))}
+                </SelectField>
+                <SelectField label="Supervisor" value={supervisorId} onChange={(e) => setSupervisorId(e.target.value)}>
+                  {DEMO_ACCOUNTS.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
             </div>
-          ))
-        )}
-      </section>
+          </SectionCard>
 
-      <section className="flex flex-col gap-2 surface p-4">
-        <h2 className="text-headline-sm text-viamar-800">Inventario del dealer</h2>
-        {inventario.length === 0 ? (
-          <EmptyState
-            icon={ClipboardList}
-            title="Sin seriales disponibles"
-            description="No hay más seriales en el inventario de este dealer."
-          />
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {inventario.slice(0, 20).map((b) => (
-              <li key={b.serial} className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-viamar-50">
-                <span className="font-code-serial text-body-sm">{b.serial}</span>
-                <Button variant="outlined" className="h-8 text-label-md" onClick={() => agregar(b.serial)}>
-                  Agregar
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          <SectionCard
+            title={`Líneas de la solicitud (${lineas.length})`}
+            description="Medición inicial de cada batería. El diagnóstico se sugiere al guardar."
+            icon={<Stethoscope />}
+          >
+            {lineas.length === 0 ? (
+              <EmptyState
+                size="sm"
+                icon={ClipboardList}
+                title="Sin baterías todavía"
+                description="Agrega seriales desde el inventario del dealer, a la derecha."
+              />
+            ) : (
+              <ol className="flex flex-col gap-2.5">
+                {lineas.map((l, idx) => (
+                  <li
+                    key={l.serial}
+                    className="grid grid-cols-2 items-end gap-3 rounded-lg border border-[#e6edf5] bg-[#f7fafd] p-3 md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_auto]"
+                  >
+                    <div className="col-span-2 flex items-center gap-2.5 self-center md:col-span-1">
+                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-viamar-50 text-label-md font-bold tabular-nums text-viamar-600">
+                        {idx + 1}
+                      </span>
+                      <SerialCell serial={l.serial} />
+                    </div>
+                    <FormField label="Voltaje (V)" type="number" step="0.1" value={l.voltaje} onChange={(e) => editar(l.serial, 'voltaje', e.target.value)} />
+                    <FormField label="Densidad" type="number" step="0.01" value={l.densidad} onChange={(e) => editar(l.serial, 'densidad', e.target.value)} />
+                    <FormField label="CCA (%)" type="number" step="1" value={l.capacidadMedida} onChange={(e) => editar(l.serial, 'capacidadMedida', e.target.value)} />
+                    <Button variant="danger-quiet" size="sm" leadingIcon={<X size={13} />} onClick={() => quitar(l.serial)}>
+                      Quitar
+                    </Button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </SectionCard>
+        </div>
 
-      {error ? <p className="text-body-sm text-danger">{error}</p> : null}
-      <div>
-        <Button onClick={crear}>Crear solicitud en PENDIENTE</Button>
+        <SectionCard
+          title="Inventario del dealer"
+          description={dealer ? `${inventario.length} seriales disponibles en ${dealer.nombre}` : undefined}
+          icon={<Warehouse />}
+          flush
+        >
+          {inventario.length === 0 ? (
+            <EmptyState
+              size="sm"
+              icon={ClipboardList}
+              title="Sin seriales disponibles"
+              description="No hay más seriales en el inventario de este dealer."
+            />
+          ) : (
+            <ul className="scroll-slim max-h-[560px] divide-y divide-[#edf1f6] overflow-y-auto px-4 font-inter tracking-[-0.01em]">
+              {inventario.slice(0, 20).map((b) => (
+                <li key={b.serial} className="-mx-2 flex items-center gap-3 rounded-sm px-2 py-2 transition-colors duration-fast hover:bg-[#f7fafd]">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12px] font-semibold text-viamar-500">{b.serial}</span>
+                    <span className="block truncate text-[11px] text-[#7a8799]">
+                      {articulos.find((a) => a.id === b.articuloId)?.descripcion ?? b.articuloId}
+                    </span>
+                  </span>
+                  <StatusBadge catalogId={b.diagnosticoId} />
+                  <button
+                    type="button"
+                    onClick={() => agregar(b.serial)}
+                    className="inline-flex h-[27px] items-center gap-1 rounded-[6px] border border-[#cfdbe8] bg-white px-2.5 text-[12px] font-semibold text-viamar-500 transition-colors duration-fast hover:border-viamar-300 hover:bg-viamar-50"
+                  >
+                    <Plus size={13} aria-hidden="true" />
+                    Agregar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
       </div>
     </div>
   )

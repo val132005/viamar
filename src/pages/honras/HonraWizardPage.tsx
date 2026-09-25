@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Wizard, WizardStepPanel } from '../../components/ui/Wizard'
-import { Button } from '../../components/ui/Button'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { SegmentedControl } from '../../components/ui/FilterBar'
 import { FormField } from '../../components/ui/FormField'
 import { IntegrationCard } from '../../components/ui/IntegrationCard'
 import { HONRA_FULL_SERIAL, HONRA_PRORRA_SERIAL } from '../../domain/entities'
@@ -105,35 +106,25 @@ export function HonraWizardPage() {
         ]
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-headline-lg text-viamar-800">Honra de mostrador</h1>
-        <p className="text-body-sm text-ink-secondary">
-          Wizard irreversible hacia adelante. Use un serial con CERT-E: full hereda, prorrateo resetea.
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={norm === HONRA_FULL_SERIAL ? 'primary' : 'outlined'}
-          className="h-8 text-label-md"
-          onClick={() => {
-            setSerial(HONRA_FULL_SERIAL)
-            setStep(0)
-          }}
-        >
-          Caso full · {HONRA_FULL_SERIAL}
-        </Button>
-        <Button
-          variant={norm === HONRA_PRORRA_SERIAL ? 'primary' : 'outlined'}
-          className="h-8 text-label-md"
-          onClick={() => {
-            setSerial(HONRA_PRORRA_SERIAL)
-            setStep(0)
-          }}
-        >
-          Caso prorrateo · {HONRA_PRORRA_SERIAL}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-4 pb-2">
+      <PageHeader
+        breadcrumbs={[{ label: 'Honras de garantía', to: '/honras' }, { label: 'Nueva honra de mostrador' }]}
+        title="Honra de mostrador"
+        description="Asistente irreversible hacia adelante. Use un serial con CERT-E: full hereda, prorrateo resetea."
+        actions={
+          <SegmentedControl
+            value={norm === HONRA_PRORRA_SERIAL ? 'prorrateo' : norm === HONRA_FULL_SERIAL ? 'full' : ('otro' as string)}
+            onChange={(id) => {
+              setSerial(id === 'prorrateo' ? HONRA_PRORRA_SERIAL : HONRA_FULL_SERIAL)
+              setStep(0)
+            }}
+            options={[
+              { id: 'full', label: `Caso full · ${HONRA_FULL_SERIAL}` },
+              { id: 'prorrateo', label: `Caso prorrateo · ${HONRA_PRORRA_SERIAL}` },
+            ]}
+          />
+        }
+      />
       <Wizard
         steps={STEPS}
         current={step}
@@ -154,8 +145,10 @@ export function HonraWizardPage() {
               onChange={(e) => setCapacidad(e.target.value)}
             />
             {articulo ? (
-              <p className="text-body-sm">
-                {articulo.descripcion} · {usd(articulo.precioVigente)}
+              <p className="flex items-center gap-2 rounded-lg border border-[#e6edf5] bg-[#f7fafd] px-3 py-2 text-body-sm text-ink">
+                <span className="font-semibold">{articulo.descripcion}</span>
+                <span className="text-ink-tertiary">·</span>
+                {usd(articulo.precioVigente)}
               </p>
             ) : (
               <p className="text-body-sm text-danger">Serial no encontrado</p>
@@ -165,17 +158,17 @@ export function HonraWizardPage() {
         {step === 1 && (
           <WizardStepPanel title="Certificado" description="El FDD exige venta y certificado vigente antes de calcular.">
             {cert ? (
-              <dl className="grid grid-cols-2 gap-2 text-body-sm">
-                <dt className="text-ink-secondary">Estado</dt>
+              <dl className="grid max-w-xl grid-cols-[160px_1fr] gap-x-3 gap-y-2.5 rounded-xl border border-[#e6edf5] bg-[#f7fafd] px-4 py-3 text-body-sm">
+                <dt className="text-ink-tertiary">Estado</dt>
                 <dd className={cert.estado === 'E' ? 'text-ok font-semibold' : 'text-danger font-semibold'}>
                   CERT-{cert.estado}
                   {cert.estado === 'C' ? ' · Cancelado — no habilita honra' : ''}
                 </dd>
-                <dt className="text-ink-secondary">Venta</dt>
+                <dt className="text-ink-tertiary">Venta</dt>
                 <dd>{formatDate(cert.fechaVenta)}</dd>
-                <dt className="text-ink-secondary">NCF</dt>
+                <dt className="text-ink-tertiary">NCF</dt>
                 <dd>{cert.facturaNcf}</dd>
-                <dt className="text-ink-secondary">Vehículo</dt>
+                <dt className="text-ink-tertiary">Vehículo</dt>
                 <dd>
                   {cert.vehiculo.marca} {cert.vehiculo.modelo} {cert.vehiculo.anio}
                 </dd>
@@ -190,7 +183,7 @@ export function HonraWizardPage() {
             {'error' in evaluacion ? (
               <p className="text-danger">{evaluacion.error}</p>
             ) : !evaluacion.admisible ? (
-              <p className="rounded bg-danger/10 p-3 text-body-sm text-danger">
+              <p className="rounded-xl border border-critical-border/60 bg-gradient-to-br from-critical-soft/40 to-critical-soft/80 px-4 py-3 text-body-sm text-critical-text">
                 Rechazado: {evaluacion.motivoRechazo}. No se calcula monto.
               </p>
             ) : (
@@ -198,12 +191,12 @@ export function HonraWizardPage() {
                 <div
                   className={
                     evaluacion.decisionVigencia === 'HEREDA'
-                      ? 'rounded bg-viamar-50 p-3'
-                      : 'rounded bg-app-surface-alt p-3'
+                      ? 'rounded-xl border border-viamar-200 bg-gradient-to-br from-white to-viamar-50 px-4 py-3'
+                      : 'rounded-xl border border-info-border/70 bg-gradient-to-br from-white to-info-soft/70 px-4 py-3'
                   }
                 >
-                  <p className="text-label-sm uppercase text-viamar-800">Vigencia del reemplazo</p>
-                  <p className="text-headline-lg text-viamar-700">{evaluacion.decisionVigencia}</p>
+                  <p className="text-overline uppercase text-ink-tertiary">Vigencia del reemplazo</p>
+                  <p className="text-metric-lg text-viamar-600">{evaluacion.decisionVigencia}</p>
                   <p className="text-body-sm mt-1">
                     {evaluacion.decisionVigencia === 'HEREDA'
                       ? 'Cliente no paga. El certificado nuevo conserva la fecha de activación original.'
@@ -216,14 +209,18 @@ export function HonraWizardPage() {
                     </p>
                   ) : null}
                 </div>
-                <dl className="grid grid-cols-2 gap-2 text-body-sm">
-                  <dt className="text-ink-secondary">Meses de uso</dt>
-                  <dd>{evaluacion.mesesUso}</dd>
-                  <dt className="text-ink-secondary">Acreditar</dt>
-                  <dd>{usd(evaluacion.montoAcreditar)}</dd>
-                  <dt className="text-ink-secondary">Paga el cliente</dt>
-                  <dd className="font-semibold">{usd(evaluacion.montoCliente)}</dd>
-                </dl>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    { l: 'Meses de uso', v: String(evaluacion.mesesUso) },
+                    { l: 'Acredita Viamar', v: usd(evaluacion.montoAcreditar) },
+                    { l: 'Paga el cliente', v: usd(evaluacion.montoCliente) },
+                  ].map((d) => (
+                    <div key={d.l} className="rounded-xl border border-line bg-white px-4 py-3 shadow-xs">
+                      <p className="text-body-xs text-ink-secondary">{d.l}</p>
+                      <p className="mt-1 text-metric tabular-nums text-ink">{d.v}</p>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
           </WizardStepPanel>
@@ -260,7 +257,7 @@ export function HonraWizardPage() {
             {'error' in evaluacion || !evaluacion.admisible ? (
               <p className="text-danger">No se puede confirmar: el cálculo no es admisible.</p>
             ) : (
-              <ul className="text-body-sm list-disc pl-5 space-y-1">
+              <ul className="list-disc space-y-1.5 rounded-xl border border-[#e6edf5] bg-[#f7fafd] py-3 pl-8 pr-4 text-body-sm">
                 <li>Serial original {norm} pasa a retirada.</li>
                 <li>Certificado actual → CERT-C (cancelado).</li>
                 <li>
@@ -272,7 +269,7 @@ export function HonraWizardPage() {
             )}
             <p className="text-body-sm">
               Ficha actual:{' '}
-              <Link className="text-viamar-700 font-code-serial" to={`/serial/${norm}`}>
+              <Link className="font-semibold text-viamar-500 hover:underline" to={`/serial/${norm}`}>
                 {norm}
               </Link>
             </p>

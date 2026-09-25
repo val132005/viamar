@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 export function TwoLine({ top, sub }: { top: ReactNode; sub?: ReactNode }) {
   return (
     <span className="flex flex-col leading-tight min-w-0">
-      <span className="text-label-lg text-ink truncate">{top}</span>
-      {sub ? <span className="text-[11px] text-ink-secondary truncate mt-0.5">{sub}</span> : null}
+      <span className="truncate text-[12px] font-semibold text-[#1c2b42]">{top}</span>
+      {sub ? <span className="mt-0.5 truncate text-[11px] text-[#7a8799]">{sub}</span> : null}
     </span>
   )
 }

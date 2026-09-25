@@ -90,11 +90,13 @@ export default {
           soft: '#E8F5EC',
           border: '#B6DFC2',
         },
+        /* Aviso en pizarra azulada: la marca no tiene amarillos ni naranjas, y el
+           rojo queda reservado a lo crítico. */
         warning: {
-          DEFAULT: '#B4690E',
-          text: '#8A5008',
-          soft: '#FDF3E4',
-          border: '#F2D5A8',
+          DEFAULT: '#4A5D78',
+          text: '#33455E',
+          soft: '#EEF2F7',
+          border: '#C9D3E0',
         },
         critical: {
           DEFAULT: '#C0392F',
@@ -111,13 +113,15 @@ export default {
 
         /* Alias heredados de estado. */
         ok: '#1F7A34',
-        warn: '#B4690E',
+        warn: '#4A5D78',
         danger: '#C0392F',
       },
 
       fontFamily: {
         sans: ['"Open Sans"', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['SFMono-Regular', 'ui-monospace', 'Menlo', 'monospace'],
+        /* Tabla de registros del panel: la tipografía de la maqueta aprobada. */
+        inter: ['Inter', '"Segoe UI"', 'system-ui', 'sans-serif'],
       },
 
       fontSize: {

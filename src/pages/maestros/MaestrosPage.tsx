@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Building2, Car, Package, Pencil, PlugZap, Plus, Tags, Trash2 } from 'lucide-react'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { MetricGrid } from '../../components/ui/Workspace'
 import { Button } from '../../components/ui/Button'
 import { DataTable, CellStack, type RowAction } from '../../components/ui/DataTable'
 import { FormField, SelectField } from '../../components/ui/FormField'
@@ -237,10 +239,35 @@ export function MaestrosPage() {
         }
       />
 
+      <MetricGrid columns={4}>
+        <MetricCard
+          label="Artículos"
+          value={articulos.length}
+          icon={Package}
+          tone="brand"
+          context={`${articulos.filter((a) => a.porConfirmar).length} por confirmar precio`}
+        />
+        <MetricCard label="Marcas" value={marcas.length} icon={Tags} tone="accent" context="Fabricantes con catálogo activo" />
+        <MetricCard
+          label="Distribuidores"
+          value={dealers.length}
+          icon={Building2}
+          tone="ok"
+          context="Puntos de venta en consignación"
+        />
+        <MetricCard
+          label="Centros y estaciones"
+          value={centros.length}
+          note={`· ${estaciones.length} estaciones`}
+          icon={PlugZap}
+          tone="neutral"
+          context={`${tipos.length} tipos de uso de vehículo`}
+        />
+      </MetricGrid>
+
       {seccion === 'articulos' ? (
         <DataTable
           title="Artículos"
-          density="compact"
           search={{ value: q, onChange: setQ, placeholder: 'Código, descripción o marca…' }}
           columns={[
             {
@@ -304,7 +331,6 @@ export function MaestrosPage() {
       {seccion === 'marcas' ? (
         <DataTable
           title="Marcas"
-          density="compact"
           search={{ value: q, onChange: setQ, placeholder: 'Nombre de marca…' }}
           columns={[
             { key: 'nombre', header: 'Nombre', primary: true, sortable: true },
@@ -333,7 +359,6 @@ export function MaestrosPage() {
       {seccion === 'dealers' ? (
         <DataTable
           title="Distribuidores"
-          density="compact"
           search={{ value: q, onChange: setQ, placeholder: 'Nombre, RNC o localidad…' }}
           columns={[
             {
@@ -442,7 +467,6 @@ export function MaestrosPage() {
       {seccion === 'tipos' ? (
         <DataTable
           title="Tipos de uso"
-          density="compact"
           search={{ value: q, onChange: setQ, placeholder: 'Tipo de uso…' }}
           columns={[
             { key: 'nombre', header: 'Nombre', primary: true, sortable: true },
@@ -608,6 +632,8 @@ function ArticuloForm({
     <Modal
       open
       title={editing ? 'Editar artículo' : 'Nuevo artículo'}
+      description="Código, marca, capacidad y precio vigente del artículo."
+      icon={Package}
       onClose={onClose}
       footer={
         <>
@@ -666,6 +692,7 @@ function MarcaForm({
     <Modal
       open
       title={editing ? 'Editar marca' : 'Nueva marca'}
+      icon={Tags}
       onClose={onClose}
       footer={
         <>
@@ -718,6 +745,8 @@ function DealerForm({
     <Modal
       open
       title={editing ? 'Editar dealer' : 'Nuevo dealer'}
+      description="Datos del punto de venta en consignación."
+      icon={Building2}
       onClose={onClose}
       footer={
         <>
@@ -775,6 +804,7 @@ function CentroForm({
     <Modal
       open
       title={editing ? 'Editar centro' : 'Nuevo centro'}
+      icon={PlugZap}
       onClose={onClose}
       footer={
         <>
@@ -826,6 +856,7 @@ function EstacionForm({
     <Modal
       open
       title={editing ? 'Editar estación' : 'Nueva estación'}
+      icon={PlugZap}
       onClose={onClose}
       footer={
         <>
@@ -877,6 +908,7 @@ function TipoUsoForm({
     <Modal
       open
       title={editing ? 'Editar tipo de uso' : 'Nuevo tipo de uso'}
+      icon={Car}
       onClose={onClose}
       footer={
         <>

@@ -19,13 +19,13 @@ export function PermissionToggle({ checked, onChange, label, disabled, hint }: P
       onClick={() => onChange(!checked)}
       title={hint}
       className={cn(
-        'relative h-6 w-10 rounded-full transition-colors disabled:opacity-40',
-        checked ? 'bg-viamar-500' : 'bg-app-border-strong',
+        'relative h-[22px] w-[38px] rounded-full transition-colors duration-fast disabled:opacity-40',
+        checked ? 'bg-gradient-to-b from-[#0a6fe8] to-[#0463dc] shadow-[0_1px_4px_rgba(4,100,220,0.3)]' : 'bg-neutral-300',
       )}
     >
       <span
         className={cn(
-          'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-panel transition-transform',
+          'absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform duration-fast',
           'left-0.5',
           checked && 'translate-x-4',
         )}

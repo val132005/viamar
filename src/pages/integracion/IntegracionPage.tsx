@@ -10,6 +10,9 @@ import { PageTabs } from '../../components/ui/PageTabs'
 import { Pill, type PillTone } from '../../components/ui/Pill'
 import { INTEGRATION_VERBS } from '../../domain/catalogs'
 import { formatDate } from '../../domain/dates'
+import { DonaEstado, PanelHeader, Ranking, type SegmentoDona } from '../../components/panel/PanelWidgets'
+import { PANEL } from '../../components/panel/tonos'
+import { cn } from '../../lib/cn'
 import { useIntegrationStore } from '../../stores/integrationStore'
 
 function prettyPayload(payload: string): string {
@@ -72,8 +75,14 @@ export function IntegracionPage() {
 
   const detalle = detalleId ? eventos.find((e) => e.id === detalleId) : undefined
 
+  const segmentosEstado: SegmentoDona[] = [
+    { id: 'enviado', label: 'Enviados', valor: porEstado.enviado, tono: 'ok' },
+    { id: 'pendiente', label: 'Pendientes', valor: porEstado.pendiente, tono: 'warn' },
+    { id: 'error', label: 'Con error', valor: porEstado.error, tono: 'danger' },
+  ]
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         title="Salida hacia D365FO"
         description="Cola de mensajes que el prototipo entregaría a Finance & Operations. Cuatro verbos: una honra encola los cuatro."
@@ -127,10 +136,27 @@ export function IntegracionPage() {
         />
       </MetricGrid>
 
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader title="Estado de la cola" info="Cómo están los mensajes que el prototipo entregaría a F&O." />
+          <div className="mt-3">
+            <DonaEstado segmentos={segmentosEstado} unidad="eventos" />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader title="Eventos por verbo" info="Tipo de mensaje: lo que falla o se acumula se lee por verbo." />
+          <div className="mt-1.5">
+            <Ranking
+              filas={[...conteo].sort((a, b) => b.total - a.total).map((v) => ({ id: v.id, label: v.label, valor: v.total }))}
+              total={eventos.length}
+            />
+          </div>
+        </section>
+      </div>
+
       <DataTable
         title="Cola de salida"
-        icon={<Radio size={15} />}
-        density="compact"
+        fill={false}
         search={{ value: q, onChange: setQ, placeholder: 'Buscar por verbo o payload…' }}
         onRowClick={(e) => setDetalleId(e.id)}
         isRowActive={(e) => e.id === detalleId}
@@ -142,7 +168,7 @@ export function IntegracionPage() {
             primary: true,
             sortable: true,
             width: '280px',
-            render: (e) => <span className="font-code-serial text-ink">{e.verbo}</span>,
+            render: (e) => <span className="font-semibold tracking-[0.02em] text-viamar-500">{e.verbo}</span>,
           },
           {
             key: 'estado',
@@ -159,7 +185,7 @@ export function IntegracionPage() {
             key: 'origenRegistro',
             header: 'Registro de origen',
             sortable: true,
-            render: (e) => <span className="font-code-serial">{e.origenRegistro}</span>,
+            render: (e) => <span className="font-semibold text-[#1c2b42]">{e.origenRegistro}</span>,
           },
           {
             key: 'origenModulo',
@@ -235,7 +261,7 @@ export function IntegracionPage() {
             </DrawerSection>
 
             <DrawerSection title="Payload">
-              <pre className="scroll-slim overflow-auto whitespace-pre-wrap rounded-sm bg-surface-subtle px-3 py-2.5 font-mono text-body-xs text-ink">
+              <pre className="scroll-slim overflow-auto whitespace-pre-wrap rounded-lg border border-[#e6edf5] bg-[#f7fafd] px-3 py-2.5 font-mono text-body-xs text-ink">
                 {prettyPayload(detalle.payload)}
               </pre>
             </DrawerSection>

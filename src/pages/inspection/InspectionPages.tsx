@@ -33,6 +33,8 @@ import { useAuthStore } from '../../stores/authStore'
 import { withHistory } from '../../stores/historyStore'
 import { accountById } from '../../seed/demoAccounts'
 import { cn } from '../../lib/cn'
+import { DonaEstado, PanelHeader, Ranking, type SegmentoDona } from '../../components/panel/PanelWidgets'
+import { PANEL, tonoDePill } from '../../components/panel/tonos'
 
 /** Etapas por las que pasa una solicitud, en orden. */
 const FLUJO: ChequeoEstado[] = ['BORRADOR', 'PENDIENTE', 'EN_PROCESO', 'FINALIZADA']
@@ -78,8 +80,34 @@ export function InspectionListPage() {
     [solicitudes],
   )
 
+  const porEtapa: SegmentoDona[] = [...FLUJO, 'CANCELADA' as ChequeoEstado].map((e) => ({
+    id: e,
+    label: humanizeEstado(e),
+    valor: conteos[e] ?? 0,
+    tono: tonoDePill(estadoTone(e)),
+  }))
+
+  /* Dónde está el trabajo: baterías sin dictamen por distribuidor. */
+  const pendientesPorDealer = useMemo(() => {
+    const mapa = new Map<string, number>()
+    for (const s of solicitudes) {
+      if (s.estado !== 'PENDIENTE' && s.estado !== 'EN_PROCESO') continue
+      mapa.set(s.dealerId, (mapa.get(s.dealerId) ?? 0) + (s.lineas.length - dictaminadasDe(s)))
+    }
+    return [...mapa.entries()]
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id, valor]) => ({
+        id,
+        label: dealers.find((d) => d.id === id)?.nombre ?? id,
+        valor,
+        to: `/distribuidores/${id}`,
+      }))
+  }, [solicitudes, dealers])
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         title="Gestión técnica"
         description="Solicitudes de chequeo en sitio: cada visita dictamina las baterías del distribuidor."
@@ -144,6 +172,30 @@ export function InspectionListPage() {
         />
       </MetricGrid>
 
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader title="Solicitudes por etapa" info="Estado actual de cada solicitud de chequeo." />
+          <div className="mt-3">
+            <DonaEstado segmentos={porEtapa} unidad="solicitudes" />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader
+            title="Baterías por dictaminar"
+            info="Líneas sin dictamen en solicitudes abiertas, por distribuidor."
+          />
+          <div className="mt-1.5">
+            {pendientesPorDealer.length ? (
+              <Ranking filas={pendientesPorDealer} total={lineasPendientes} />
+            ) : (
+              <p className="py-10 text-center text-body-sm text-ink-tertiary">
+                Todas las visitas abiertas están dictaminadas.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
+
       {solicitudes.length === 0 ? (
         <EmptyState
           framed
@@ -159,7 +211,7 @@ export function InspectionListPage() {
       ) : (
         <DataTable
           title="Ejecución técnica"
-          icon={<Stethoscope size={15} />}
+          fill={false}
           search={{ value: q, onChange: setQ, placeholder: 'Solicitud o dealer…' }}
           columns={[
             {
@@ -170,7 +222,7 @@ export function InspectionListPage() {
               width: '150px',
               render: (s) => (
                 <Link
-                  className="text-viamar-700 underline-offset-2 transition-colors duration-fast hover:text-viamar-500 hover:underline"
+                  className="font-semibold text-viamar-500 underline-offset-2 transition-colors duration-fast hover:text-viamar-600 hover:underline"
                   to={`/gestion-tecnica/${s.id}`}
                 >
                   {s.numero}
@@ -213,9 +265,7 @@ export function InspectionListPage() {
               width: '120px',
               sortable: true,
               sortValue: (s) => s.fechaVisita,
-              render: (s) => (
-                <span className="whitespace-nowrap text-body-sm">{formatDate(s.fechaVisita)}</span>
-              ),
+              render: (s) => <span className="whitespace-nowrap">{formatDate(s.fechaVisita)}</span>,
             },
           ]}
           rows={rows}
@@ -423,7 +473,8 @@ function InspectionDetailBody({ solicitudId }: { solicitudId: string }) {
       />
 
       {/* Estado del proceso: en qué punto está la visita y cuánto falta. */}
-      <section className="surface shrink-0 px-4 py-3">
+      <section className="surface shrink-0 px-4 pb-4 pt-3.5">
+        <PanelHeader title="Avance de la visita" className="mb-3" />
         <ProcessSteps
           steps={FLUJO.map((e) => ({ id: e, label: humanizeEstado(e) }))}
           current={etapaActual}
@@ -450,8 +501,10 @@ function InspectionDetailBody({ solicitudId }: { solicitudId: string }) {
         </div>
       </section>
 
-      <aside className="flex shrink-0 items-start gap-2 rounded-md bg-info-soft px-3 py-2 ring-1 ring-inset ring-info-border">
-        <Info size={15} className="mt-0.5 shrink-0 text-info" aria-hidden="true" />
+      <aside className="flex shrink-0 items-center gap-3 rounded-xl border border-info-border/70 bg-gradient-to-br from-white to-info-soft/70 px-4 py-2.5">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-info-soft text-info">
+          <Info size={16} aria-hidden="true" />
+        </span>
         <p className="text-body-sm text-info-text">
           El diagnóstico técnico no decide la cobertura económica: la garantía se evalúa aparte con
           la póliza vigente.
@@ -469,11 +522,14 @@ function InspectionDetailBody({ solicitudId }: { solicitudId: string }) {
           return (
             <li
               key={l.id}
-              className={cn('surface flex flex-col gap-3 p-4', l.accionTomada && 'bg-surface-subtle')}
+              className={cn(
+                'surface flex flex-col gap-3 p-4 transition-shadow duration-200 hover:shadow-md',
+                l.accionTomada && 'bg-gradient-to-br from-white to-success-soft/40',
+              )}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-neutral-200 text-label-sm font-bold tabular-nums text-neutral-700">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-viamar-50 text-label-md font-bold tabular-nums text-viamar-600">
                     {i + 1}
                   </span>
                   <SerialCell serial={l.serial} />
@@ -538,7 +594,7 @@ function InspectionDetailBody({ solicitudId }: { solicitudId: string }) {
               {enCola ? (
                 <p className="text-body-xs text-ink-tertiary">
                   En cola de carga ·{' '}
-                  <Link className="text-viamar-700 underline-offset-2 hover:underline" to="/carga">
+                  <Link className="font-semibold text-viamar-500 underline-offset-2 hover:underline" to="/carga">
                     ver proceso
                   </Link>
                 </p>

@@ -46,8 +46,8 @@ export function FilterBar({
               type="button"
               onClick={f.onRemove}
               className={cn(
-                'group inline-flex items-center gap-1 rounded-sm py-0.5 pl-2 pr-1',
-                'bg-viamar-50 text-label-md text-viamar-800 ring-1 ring-inset ring-viamar-200',
+                'group inline-flex h-[24px] items-center gap-1 rounded-full pl-2.5 pr-1.5',
+                'bg-viamar-50 text-label-md text-viamar-700 ring-1 ring-inset ring-viamar-200',
                 'transition-colors duration-fast hover:bg-viamar-100',
               )}
             >
@@ -93,7 +93,7 @@ export function SearchField({
     <div className={cn('relative min-w-52 flex-1', className)}>
       <Search
         size={14}
-        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-tertiary"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7d90]"
         aria-hidden="true"
       />
       <input
@@ -102,13 +102,14 @@ export function SearchField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(
-          'w-full rounded border border-line-strong bg-white pl-8 pr-8 text-body-sm text-ink',
-          'placeholder:text-ink-tertiary',
+          /* Piel de los controles de la tabla del panel. */
+          'w-full rounded-[6px] border border-[#d9e2ec] bg-white pl-8 pr-8 text-[12.5px] text-[#1c2b42]',
+          'placeholder:text-[#8591a3]',
           'transition-colors duration-fast',
-          'hover:border-line-brand',
-          'focus:border-viamar-500 focus:shadow-focus focus:outline-none',
+          'hover:border-viamar-300',
+          'focus:border-viamar-400 focus:shadow-focus focus:outline-none',
           '[&::-webkit-search-cancel-button]:appearance-none',
-          size === 'sm' ? 'h-control-sm' : 'h-control',
+          size === 'sm' ? 'h-[31px]' : 'h-[34px]',
         )}
       />
       {value ? (
@@ -143,7 +144,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="tablist"
       className={cn(
-        'inline-flex items-center gap-0.5 rounded bg-neutral-100 p-0.5',
+        'inline-flex items-center gap-0.5 rounded-[7px] border border-[#e3eaf2] bg-[#f0f5fa] p-0.5',
         className,
       )}
     >
@@ -157,12 +158,12 @@ export function SegmentedControl<T extends string>({
             aria-selected={on}
             onClick={() => onChange(opt.id)}
             className={cn(
-              'inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2.5 font-semibold',
+              'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2.5 font-semibold',
               'transition-colors duration-fast',
               size === 'sm' ? 'h-6 text-label-md' : 'h-7 text-label-lg',
               on
-                ? 'bg-white text-ink shadow-xs'
-                : 'text-ink-secondary hover:text-ink',
+                ? 'bg-white text-viamar-600 shadow-xs'
+                : 'text-ink-secondary hover:text-viamar-600',
             )}
           >
             {opt.label}

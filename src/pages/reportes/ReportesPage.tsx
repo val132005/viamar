@@ -1,10 +1,16 @@
 import { useMemo, useState } from 'react'
-import { BadgeCheck, Clock, Download, Shield } from 'lucide-react'
+import { BadgeCheck, Clock, Coins, Download, Shield } from 'lucide-react'
+import { DonaEstado, PanelHeader, Ranking, type SegmentoDona } from '../../components/panel/PanelWidgets'
+import { PANEL } from '../../components/panel/tonos'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { MetricGrid } from '../../components/ui/Workspace'
+import { cn } from '../../lib/cn'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { PageTabs } from '../../components/ui/PageTabs'
 import { Pill } from '../../components/ui/Pill'
+import { SerialCell } from '../../components/ui/SerialCell'
 import { formatDate } from '../../domain/dates'
 import { usd } from '../../domain/money'
 import { useBatteryStore } from '../../stores/batteryStore'
@@ -31,7 +37,7 @@ type ReporteId = 'honras' | 'envejecido' | 'garantia'
 /** Botón de exportación: mismo gesto en los tres informes. */
 function ExportButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button size="sm" variant="secondary" leadingIcon={<Download size={14} />} onClick={onClick}>
+    <Button size="sm" leadingIcon={<Download size={14} />} onClick={onClick}>
       Exportar CSV
     </Button>
   )
@@ -93,8 +99,64 @@ export function ReportesPage() {
     )
   }, [certificados])
 
+  const enDealer = Object.values(baterias).filter((b) => b.ubicacionTipo === 'DEALER').length
+  const acreditadoTotal = honras.reduce((a, h) => a + h.resultadoCalculo.montoAcreditar, 0)
+  const clienteTotal = honras.reduce((a, h) => a + h.resultadoCalculo.montoCliente, 0)
+  const cancelados = certificados.filter((c) => c.estado === 'C').length
+
+  /* El bloque analítico acompaña al informe abierto: cada pestaña trae su
+     propia distribución y su ranking por dealer. */
+  const sumaPorDealer = (pares: Array<[string | undefined, number]>) => {
+    const mapa = new Map<string, number>()
+    for (const [id, n] of pares) {
+      const k = dealerNombre(id)
+      mapa.set(k, (mapa.get(k) ?? 0) + n)
+    }
+    return [...mapa.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([label, valor]) => ({ id: label, label, valor }))
+  }
+  const analitica: { dona: SegmentoDona[]; unidad: string; tituloDona: string; tituloRanking: string; ranking: ReturnType<typeof sumaPorDealer>; total: number } =
+    tab === 'honras'
+      ? {
+          tituloDona: 'Honras por desenlace',
+          unidad: 'honras',
+          dona: [
+            { id: 'ok', label: 'Ejecutadas', valor: honras.filter((h) => h.estado === 'EJECUTADA' || h.estado === 'APROBADA').length, tono: 'ok' },
+            { id: 'ko', label: 'Rechazadas', valor: honras.filter((h) => h.estado === 'RECHAZADA').length, tono: 'danger' },
+            { id: 'pend', label: 'Pendientes', valor: honras.filter((h) => h.estado === 'SOLICITADA').length, tono: 'warn' },
+          ],
+          tituloRanking: 'Honras por dealer',
+          ranking: sumaPorDealer(honrasDealerMes.map((r) => [r.dealerId, r.n])),
+          total: honras.length,
+        }
+      : tab === 'envejecido'
+        ? {
+            tituloDona: 'Stock en dealers por antigüedad',
+            unidad: 'baterías',
+            dona: [
+              { id: 'regla', label: `Hasta ${AGE_LIMIT_DAYS} días`, valor: enDealer - envejecido.length, tono: 'ok' },
+              { id: 'aged', label: `Más de ${AGE_LIMIT_DAYS} días`, valor: envejecido.length, tono: 'warn' },
+            ],
+            tituloRanking: 'Stock envejecido por dealer',
+            ranking: sumaPorDealer(envejecido.map((b) => [b.ubicacionId, 1])),
+            total: envejecido.length,
+          }
+        : {
+            tituloDona: 'Certificados por estado',
+            unidad: 'certificados',
+            dona: [
+              { id: 'E', label: 'CERT-E vigentes', valor: certificados.length - cancelados, tono: 'ok' },
+              { id: 'C', label: 'CERT-C cancelados', valor: cancelados, tono: 'danger' },
+            ],
+            tituloRanking: 'Certificados por dealer',
+            ranking: sumaPorDealer(certsPorEstado.map((r) => [r.dealerId, r.n])),
+            total: certificados.length,
+          }
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         title="Reportes"
         description="Agregados listos para exportar. Cada informe se calcula sobre los datos vivos del prototipo."
@@ -116,11 +178,47 @@ export function ReportesPage() {
         }
       />
 
+      <MetricGrid columns={4}>
+        <MetricCard label="Honras registradas" value={honras.length} icon={Shield} tone="brand" context={`${honrasDealerMes.length} combinaciones dealer · mes`} />
+        <MetricCard label="USD acreditado" value={usd(acreditadoTotal)} icon={Coins} tone="accent" context={`Cliente asumió ${usd(clienteTotal)}`} />
+        <MetricCard
+          label="Stock envejecido"
+          value={envejecido.length}
+          note={`de ${enDealer}`}
+          icon={Clock}
+          tone="warn"
+          context={`Más de ${AGE_LIMIT_DAYS} días en dealer`}
+        />
+        <MetricCard
+          label="Certificados cancelados"
+          value={cancelados}
+          note={`de ${certificados.length}`}
+          icon={BadgeCheck}
+          tone="danger"
+          filled={cancelados > 0}
+          context="Bloquean la honra de su serial"
+        />
+      </MetricGrid>
+
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader title={analitica.tituloDona} />
+          <div className="mt-3">
+            <DonaEstado segmentos={analitica.dona} unidad={analitica.unidad} />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader title={analitica.tituloRanking} />
+          <div className="mt-1.5">
+            <Ranking filas={analitica.ranking} total={analitica.total} />
+          </div>
+        </section>
+      </div>
+
       {tab === 'honras' ? (
         <DataTable
           title="Honras por dealer y mes"
-          icon={<Shield size={15} />}
-          density="compact"
+          fill={false}
           actions={
             <ExportButton
               onClick={() =>
@@ -188,8 +286,7 @@ export function ReportesPage() {
       {tab === 'envejecido' ? (
         <DataTable
           title={`Stock envejecido (más de ${AGE_LIMIT_DAYS} días)`}
-          icon={<Clock size={15} />}
-          density="compact"
+          fill={false}
           actions={
             <ExportButton
               onClick={() =>
@@ -223,7 +320,7 @@ export function ReportesPage() {
               header: 'Serial',
               width: '160px',
               sortable: true,
-              render: (b) => <span className="font-code-serial">{b.serial}</span>,
+              render: (b) => <SerialCell serial={b.serial} />,
             },
             {
               key: 'art',
@@ -255,7 +352,6 @@ export function ReportesPage() {
           ]}
           rows={envejecido}
           rowKey={(b) => b.serial}
-          rowTone={() => 'warn'}
           emptyTitle="Sin stock envejecido"
           emptyDescription={`Ninguna batería en dealer supera los ${AGE_LIMIT_DAYS} días desde su ingreso.`}
         />
@@ -264,8 +360,7 @@ export function ReportesPage() {
       {tab === 'garantia' ? (
         <DataTable
           title="Uso de garantía por dealer"
-          icon={<BadgeCheck size={15} />}
-          density="compact"
+          fill={false}
           actions={
             <ExportButton
               onClick={() =>

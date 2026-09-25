@@ -25,6 +25,10 @@ export function estadoTone(estado: string): PillTone {
     case 'APROBADA':
     case 'EJECUTADA':
     case 'ACTIVO':
+    case 'ACTIVA':
+    case 'CARGA_COMPLETADA':
+    case 'ENVIADO':
+    case 'CONFIRMADO':
       return 'ok'
     case 'EN_PROCESO':
     case 'PROCESANDO':
@@ -37,6 +41,8 @@ export function estadoTone(estado: string): PillTone {
     case 'RECHAZADA':
     case 'ERROR':
     case 'BLOQUEADA':
+    case 'NO_RECUPERABLE':
+    case 'FALLIDO':
       return 'danger'
     default:
       return 'neutral'

@@ -1,10 +1,15 @@
 import { Link } from 'react-router-dom'
-import { ClipboardList, ScanLine, Stethoscope } from 'lucide-react'
+import { ChevronRight, ClipboardList, ScanLine, Stethoscope } from 'lucide-react'
 
 const ACTIONS = [
-  { to: '/pda/conteo', label: 'Conteo de inventario', icon: ScanLine },
-  { to: '/pda/diagnostico/CIB-00000000', label: 'Diagnóstico rápido', icon: Stethoscope },
-  { to: '/pda/resumen', label: 'Cerrar visita', icon: ClipboardList },
+  { to: '/pda/conteo', label: 'Conteo de inventario', hint: 'Escanea contra lo esperado', icon: ScanLine },
+  {
+    to: '/pda/diagnostico/CIB-00000000',
+    label: 'Diagnóstico rápido',
+    hint: 'Dictamen de una batería',
+    icon: Stethoscope,
+  },
+  { to: '/pda/resumen', label: 'Cerrar visita', hint: 'Resumen y chequeo', icon: ClipboardList },
 ]
 
 /**
@@ -31,17 +36,19 @@ export function PdaHomePage() {
             <Link
               key={a.to}
               to={a.to}
-              className="flex items-center gap-4 rounded-2xl border border-line bg-white px-4 py-5 shadow-xs transition-[border-color,box-shadow] duration-fast ease-brand hover:border-viamar-200 hover:shadow-sm active:bg-surface-active"
+              className="flex items-center gap-4 rounded-xl border border-line bg-white px-4 py-4 shadow-xs transition-[border-color,box-shadow,transform] duration-200 ease-brand hover:-translate-y-0.5 hover:border-viamar-200 hover:shadow-md active:bg-surface-active"
             >
               <span
-                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-viamar-50 text-viamar-600"
+                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-viamar-100/80 text-viamar-600"
                 aria-hidden="true"
               >
-                <Icon size={24} strokeWidth={1.9} />
+                <Icon size={23} strokeWidth={2} />
               </span>
-              <span className="min-w-0 flex-1 text-headline-sm font-semibold text-viamar-700">
-                {a.label}
+              <span className="min-w-0 flex-1">
+                <span className="block text-headline-sm text-ink">{a.label}</span>
+                <span className="block text-body-xs text-ink-tertiary">{a.hint}</span>
               </span>
+              <ChevronRight size={18} className="shrink-0 text-ink-tertiary" aria-hidden="true" />
             </Link>
           )
         })}

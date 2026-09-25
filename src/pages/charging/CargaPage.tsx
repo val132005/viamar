@@ -23,6 +23,8 @@ import { withHistory } from '../../stores/historyStore'
 import { formatDate, iso } from '../../domain/dates'
 import type { ProcesoCarga } from '../../domain/entities'
 import { cn } from '../../lib/cn'
+import { DonaEstado, PanelHeader, Ranking, SelectPill, type SegmentoDona } from '../../components/panel/PanelWidgets'
+import { PANEL, tonoDePill } from '../../components/panel/tonos'
 
 function diasEnCola(fechaInicio: string): number {
   const ms = Date.now() - new Date(fechaInicio).getTime()
@@ -165,10 +167,40 @@ export function CargaPage() {
     })
   }, [terminados, centroFiltro, q])
 
+  /* Cómo se reparte el trabajo de carga, sobre el mismo filtro de centro. */
+  const delCentro = (p: ProcesoCarga) => centroFiltro === 'todos' || p.centroId === centroFiltro
+  const porResultado: SegmentoDona[] = useMemo(() => {
+    const cuenta = new Map<string, number>()
+    for (const p of procesos.filter(delCentro)) cuenta.set(p.resultado, (cuenta.get(p.resultado) ?? 0) + 1)
+    return [...cuenta.entries()].map(([id, valor]) => ({
+      id,
+      label: humanizeEstado(id),
+      valor,
+      tono: tonoDePill(estadoTone(id)),
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procesos, centroFiltro])
+  const colaPorCentro = centros
+    .filter((c) => centroFiltro === 'todos' || c.id === centroFiltro)
+    .map((c) => ({ id: c.id, label: c.nombre, valor: cola.filter((p) => p.centroId === c.id).length }))
+    .sort((a, b) => b.valor - a.valor)
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         title="Proceso de carga y mantenimiento"
+        actions={
+          <SelectPill
+            value={centroFiltro}
+            onChange={setCentroFiltro}
+            ariaLabel="Centro de carga"
+            className="min-w-[220px]"
+            options={[
+              { value: 'todos', label: 'Todos los centros' },
+              ...centros.map((c) => ({ value: c.id, label: c.nombre })),
+            ]}
+          />
+        }
         description="Recepción en centros de servicio, asignación de estaciones por orden FIFO y retorno de inventario recuperado a distribuidores."
         tabs={
           <PageTabs
@@ -180,23 +212,6 @@ export function CargaPage() {
               { id: 'retorno', label: 'Retorno a dealer', count: pendientesRetorno.length },
               { id: 'historico', label: 'Histórico', count: terminados.length },
             ]}
-            action={
-              <label className="flex items-center gap-2">
-                <span className="text-body-xs text-ink-tertiary">Centro</span>
-                <select
-                  value={centroFiltro}
-                  onChange={(e) => setCentroFiltro(e.target.value)}
-                  className="h-9 max-w-[220px] rounded-md border border-line-strong bg-white px-2.5 text-body-sm text-ink focus:border-viamar-500 focus:shadow-focus focus:outline-none"
-                >
-                  <option value="todos">Todos los centros</option>
-                  {centros.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            }
           />
         }
       />
@@ -215,7 +230,6 @@ export function CargaPage() {
           value={`${ocupadasTotal} / ${totalEstaciones}`}
           icon={PlugZap}
           tone="brand"
-          filled
           context={`${pctOcupacion}% de ocupación · ${totalEstaciones - ocupadasTotal} disponibles`}
         />
         <MetricCard
@@ -235,20 +249,31 @@ export function CargaPage() {
         />
       </MetricGrid>
 
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader title="Procesos por resultado" info="Todos los procesos de carga del centro seleccionado." />
+          <div className="mt-3">
+            <DonaEstado segmentos={porResultado} unidad="procesos" />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader title="Cola por centro" info="Baterías pendientes o en carga en cada centro de servicio." />
+          <div className="mt-1.5">
+            <Ranking filas={colaPorCentro} total={cola.length} />
+          </div>
+        </section>
+      </div>
+
       {/* Tablero visual de estaciones por centro */}
       {tab === 'estaciones' ? (
-      <section className="surface min-h-0 flex-1 overflow-y-auto scroll-slim p-3.5">
-        <div className="mb-2.5 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-headline-sm text-ink">
-            <PlugZap size={15} className="text-viamar-500" />
-            Tablero de estaciones de carga
-          </h2>
-          <span className="text-body-xs text-ink-tertiary">
-            Ocupación actual por centro de servicio
-          </span>
-        </div>
+      <section className={cn(PANEL, 'px-4 pb-4 pt-3.5')}>
+        <PanelHeader
+          title="Tablero de estaciones de carga"
+          info="Ocupación actual por centro de servicio."
+          className="mb-3"
+        />
 
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3.5 lg:grid-cols-2">
           {centros
             .filter((c) => centroFiltro === 'todos' || c.id === centroFiltro)
             .map((c) => {
@@ -257,10 +282,13 @@ export function CargaPage() {
             const pct = ests.length > 0 ? Math.round((ocupadas / ests.length) * 100) : 0
 
             return (
-              <div key={c.id} className="rounded border border-line bg-surface-subtle p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-label-lg font-semibold text-ink">{c.nombre}</h3>
+              <div key={c.id} className="rounded-xl border border-[#e6edf5] bg-[#f7fafd] p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-viamar-100/80 text-viamar-600">
+                    <PlugZap size={17} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-label-lg font-semibold text-ink">{c.nombre}</h3>
                     <p className="text-body-xs text-ink-tertiary">{c.localidad}</p>
                   </div>
                   <div className="text-right">
@@ -272,31 +300,31 @@ export function CargaPage() {
                 </div>
 
                 {/* Barra de capacidad */}
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white ring-1 ring-inset ring-[#e6edf5]">
                   <div
                     className={cn(
-                      'h-full transition-all duration-300',
-                      pct >= 90 ? 'bg-critical' : pct >= 60 ? 'bg-warning' : 'bg-viamar-500',
+                      'h-full rounded-full transition-all duration-300',
+                      pct >= 90 ? 'bg-critical' : pct >= 60 ? 'bg-warning' : 'bg-gradient-to-r from-viamar-500 to-viamar-accent',
                     )}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
 
                 {/* Slots individuales de estaciones */}
-                <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {ests.map((e) => {
                     const ocup = estacionOcupadaPor(e.id)
                     return (
                       <div
                         key={e.id}
                         className={cn(
-                          'flex flex-col rounded-md border px-2 py-1.5 text-left transition-colors duration-fast',
+                          'flex flex-col rounded-lg border px-2.5 py-2 text-left shadow-xs transition-[border-color,box-shadow] duration-fast hover:shadow-md',
                           /* La estación ocupada se tiñe: en un tablero de
                              capacidad lo que se busca de un vistazo es qué
                              está tomado, no qué está libre. */
                           ocup
-                            ? 'border-viamar-200 bg-viamar-50/70'
-                            : 'border-line-subtle bg-white',
+                            ? 'border-viamar-200 bg-gradient-to-br from-white to-viamar-50'
+                            : 'border-[#e6edf5] bg-white',
                         )}
                       >
                         <div className="flex items-center justify-between gap-1">
@@ -305,8 +333,8 @@ export function CargaPage() {
                           </span>
                           <span
                             className={cn(
-                              'h-1.5 w-1.5 shrink-0 rounded-full',
-                              ocup ? 'bg-warning' : 'bg-success',
+                              'h-2 w-2 shrink-0 rounded-full',
+                              ocup ? 'bg-viamar-500' : 'bg-success',
                             )}
                           />
                         </div>
@@ -337,8 +365,7 @@ export function CargaPage() {
         {tab === 'cola' && (
           <DataTable
             title="Cola FIFO activa"
-            icon={<BatteryCharging size={15} />}
-            density="compact"
+            fill={false}
             search={{ value: q, onChange: setQ, placeholder: 'Filtrar por serial…' }}
             columns={[
               {
@@ -430,7 +457,7 @@ export function CargaPage() {
                             onChange={(e) =>
                               setEstacionSel((prev) => ({ ...prev, [p.id]: e.target.value }))
                             }
-                            className="h-control-sm rounded border border-line-strong bg-white px-1.5 text-body-xs text-ink"
+                            className="h-[27px] cursor-pointer rounded-[6px] border border-[#d9e2ec] bg-white px-2 text-[12px] text-[#1c2b42] transition-colors duration-fast hover:border-viamar-300 focus-visible:shadow-focus focus-visible:outline-none"
                           >
                             <option value="">Estación…</option>
                             {libres.map((e) => (
@@ -475,8 +502,7 @@ export function CargaPage() {
         {tab === 'retorno' && (
           <DataTable
             title="Retorno a dealer"
-            icon={<Truck size={15} />}
-            density="compact"
+            fill={false}
             search={{ value: q, onChange: setQ, placeholder: 'Filtrar por serial…' }}
             columns={[
               {
@@ -540,8 +566,7 @@ export function CargaPage() {
         {tab === 'historico' && (
           <DataTable
             title="Histórico de cargas"
-            icon={<CheckCircle2 size={15} />}
-            density="compact"
+            fill={false}
             search={{ value: q, onChange: setQ, placeholder: 'Filtrar histórico…' }}
             columns={[
               {

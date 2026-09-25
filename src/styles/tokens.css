@@ -71,10 +71,10 @@
   --success-soft: #e8f5ec;
   --success-border: #b6dfc2;
 
-  --warning: #b4690e;
-  --warning-text: #8a5008;
-  --warning-soft: #fdf3e4;
-  --warning-border: #f2d5a8;
+  --warning: #4a5d78;
+  --warning-text: #33455e;
+  --warning-soft: #eef2f7;
+  --warning-border: #c9d3e0;
 
   --danger: #c0392f;
   --danger-text: #9b2c24;
@@ -195,17 +195,20 @@ body {
    SUPERFICIES
    ========================================================================= */
 
+/* Tarjeta del panel (Dashboard / Trazabilidad): blanca, filo tenue, esquinas
+   de 14 px y sombra mínima. Todas las superficies de la app la comparten. */
 .surface {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
 /* Panel con elevación mínima: para elementos que flotan sobre el contenido. */
 .surface-raised {
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
 }
 
@@ -293,11 +296,23 @@ body {
    Dentro de la aplicación operativa NO se usa decoración de fondo.
    ========================================================================= */
 
+/* El mismo marino que el menú lateral, con un brillo azul de marca arriba. */
 .brand-canvas {
   background:
     radial-gradient(900px 520px at 12% -10%, rgba(3, 155, 229, 0.16), transparent 60%),
     radial-gradient(760px 480px at 92% 8%, rgba(32, 106, 169, 0.14), transparent 58%),
-    var(--viamar-900);
+    linear-gradient(180deg, #0b2b4c 0%, #0a2843 100%);
+}
+
+/* Logo en negativo sobre marino: letras blancas, esfera con su degradado. */
+.logo-negativo {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+.logo-negativo > g:first-of-type {
+  fill: rgba(255, 255, 255, 0.7);
+}
+.logo-negativo > g:nth-of-type(2) {
+  fill: #fff;
 }
 
 @keyframes fade-in {
@@ -327,5 +342,17 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Panel de detalle acoplado: entra desde la derecha sin empujar la lista. */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

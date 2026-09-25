@@ -1,6 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { BadgeCheck, BadgePlus, FileX2, Repeat, ShieldCheck } from 'lucide-react'
+import {
+  ArrowRight,
+  BadgeCheck,
+  BadgePlus,
+  Car,
+  FileText,
+  FileX2,
+  Repeat,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react'
+import { DonaEstado, PanelHeader, Ranking, type SegmentoDona } from '../../components/panel/PanelWidgets'
+import { PANEL } from '../../components/panel/tonos'
+import { SectionCard } from '../../components/ui/SectionCard'
+import { cn } from '../../lib/cn'
 import { DataTable } from '../../components/ui/DataTable'
 import { SerialCell } from '../../components/ui/SerialCell'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -13,7 +27,7 @@ import { PageTabs } from '../../components/ui/PageTabs'
 import { Pill } from '../../components/ui/Pill'
 import { FormField, SelectField, TextAreaField } from '../../components/ui/FormField'
 import { Modal } from '../../components/ui/Modal'
-import { addMonths, formatDate, iso } from '../../domain/dates'
+import { addMonths, formatDate, iso, monthsElapsed } from '../../domain/dates'
 import { normalizeSerial } from '../../domain/serial'
 import type { Certificado } from '../../domain/entities'
 import { useBatteryStore } from '../../stores/batteryStore'
@@ -35,6 +49,7 @@ const FILTROS: { id: FiltroEstado; label: string }[] = [
 export function CertificatesPage() {
   const certificados = useCertificateStore((s) => s.certificados)
   const clientes = useDistributorStore((s) => s.clientes)
+  const dealers = useDistributorStore((s) => s.dealers)
   const [filtro, setFiltro] = useState<FiltroEstado>('todos')
   const [q, setQ] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -64,8 +79,30 @@ export function CertificatesPage() {
     [certificados],
   )
 
+  const porEstado: SegmentoDona[] = [
+    { id: 'E', label: 'CERT-E vigentes', valor: conteos.E - certificados.filter((c) => c.estado === 'E' && c.heredadoDe).length, tono: 'ok' },
+    { id: 'heredado', label: 'Heredados por honra', valor: certificados.filter((c) => c.estado === 'E' && c.heredadoDe).length, tono: 'accent' },
+    { id: 'C', label: 'CERT-C cancelados', valor: conteos.C, tono: 'danger' },
+  ]
+  const porDealer = useMemo(() => {
+    const mapa = new Map<string, number>()
+    for (const c of certificados) {
+      const k = c.dealerId ?? 'directo'
+      mapa.set(k, (mapa.get(k) ?? 0) + 1)
+    }
+    return [...mapa.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id, valor]) => ({
+        id,
+        label: id === 'directo' ? 'Venta directa Viamar' : (dealers.find((d) => d.id === id)?.nombre ?? id),
+        valor,
+        to: id === 'directo' ? undefined : `/distribuidores/${id}`,
+      }))
+  }, [certificados, dealers])
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         title="Certificados"
         description="Emisión, vigencia y cancelación del certificado digital que acompaña a cada batería vendida."
@@ -126,10 +163,24 @@ export function CertificatesPage() {
         />
       </MetricGrid>
 
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader title="Certificados por estado" info="Estado actual de cada certificado emitido." />
+          <div className="mt-3">
+            <DonaEstado segmentos={porEstado} unidad="certificados" />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader title="Certificados por punto de venta" info="Dónde se vendió la batería certificada." />
+          <div className="mt-1.5">
+            <Ranking filas={porDealer} total={certificados.length} />
+          </div>
+        </section>
+      </div>
+
       <DataTable
         title="Certificados emitidos"
-        icon={<BadgeCheck size={15} />}
-        density="compact"
+        fill={false}
         search={{ value: q, onChange: setQ, placeholder: 'Buscar por serial (p. ej. CIB-908…)' }}
         columns={[
           {
@@ -288,6 +339,9 @@ function EmitirCertificadoModal({ open, onClose }: { open: boolean; onClose: () 
     <Modal
       open={open}
       title="Emitir certificado"
+      description="CERT-E digital para la batería vendida al cliente final."
+      icon={BadgePlus}
+      size="lg"
       onClose={onClose}
       footer={
         <>
@@ -298,7 +352,8 @@ function EmitirCertificadoModal({ open, onClose }: { open: boolean; onClose: () 
         </>
       }
     >
-      <div className="flex flex-col gap-3">
+      <div className="grid gap-3.5 sm:grid-cols-2">
+        <div className="sm:col-span-2">
         <FormField
           label="Serial (sin CERT-E vigente)"
           value={serialRaw}
@@ -315,6 +370,7 @@ function EmitirCertificadoModal({ open, onClose }: { open: boolean; onClose: () 
               : undefined
           }
         />
+        </div>
         <SelectField label="Cliente final" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
           <option value="">Seleccione…</option>
           {clientes.map((c) => (
@@ -338,7 +394,7 @@ function EmitirCertificadoModal({ open, onClose }: { open: boolean; onClose: () 
           placeholder="B01…"
           hint="Formato: B + al menos 8 dígitos."
         />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3.5 sm:col-span-2">
           <FormField label="Marca" value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="KIA" />
           <FormField label="Modelo" value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="Rio" />
           <FormField label="Año" value={anio} onChange={(e) => setAnio(e.target.value)} inputMode="numeric" />
@@ -352,7 +408,7 @@ function EmitirCertificadoModal({ open, onClose }: { open: boolean; onClose: () 
           ))}
         </SelectField>
         {!serialValido && serialRaw.trim() ? (
-          <p className="text-body-sm text-ink-secondary">Complete un serial válido para habilitar la emisión.</p>
+          <p className="text-body-sm text-ink-secondary sm:col-span-2">Complete un serial válido para habilitar la emisión.</p>
         ) : null}
       </div>
     </Modal>
@@ -388,6 +444,15 @@ export function CertificateDetailPage() {
 
   const cliente = clientes.find((c) => c.id === cert.clienteId)
   const dealer = dealers.find((d) => d.id === cert.dealerId)
+  const transcurridos = Math.max(0, monthsElapsed(new Date(cert.fechaActivacion), new Date()))
+  const tramo =
+    cert.estado !== 'E'
+      ? 'Cancelado'
+      : transcurridos < 12
+        ? 'Cobertura completa'
+        : transcurridos < 24
+          ? 'Prorrateo'
+          : 'Vencido'
 
   async function confirmarCancelar() {
     if (!motivo.trim()) {
@@ -415,7 +480,7 @@ export function CertificateDetailPage() {
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         breadcrumbs={[{ label: 'Certificados', to: '/certificados' }, { label: cert.serial }]}
         title={cert.serial}
@@ -440,53 +505,108 @@ export function CertificateDetailPage() {
       />
 
       {cert.estado !== 'E' ? (
-        <aside className="flex items-start gap-2 rounded-md bg-critical-soft px-3 py-2 ring-1 ring-inset ring-critical-border">
-          <FileX2 size={15} className="mt-0.5 shrink-0 text-critical" aria-hidden="true" />
+        <aside className="flex items-center gap-3 rounded-xl border border-critical-border/60 bg-gradient-to-br from-critical-soft/40 to-critical-soft/80 px-4 py-2.5">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 text-critical">
+            <FileX2 size={16} aria-hidden="true" />
+          </span>
           <p className="text-body-sm text-critical-text">
             Certificado cancelado: la honra está bloqueada para este serial.
           </p>
         </aside>
       ) : null}
 
-      <div className="surface p-4">
-        <dl className="grid grid-cols-2 gap-2 text-body-sm">
-          <dt className="text-ink-secondary">Cliente</dt>
-          <dd>{cliente?.nombre ?? cert.clienteId}</dd>
-          <dt className="text-ink-secondary">Documento</dt>
-          <dd>{cliente?.documento ?? '—'}</dd>
-          <dt className="text-ink-secondary">Dealer</dt>
-          <dd>{dealer?.nombre ?? '—'}</dd>
-          <dt className="text-ink-secondary">NCF</dt>
-          <dd>{cert.facturaNcf}</dd>
-          <dt className="text-ink-secondary">Venta / activación</dt>
-          <dd>
-            {formatDate(cert.fechaVenta)} / {formatDate(cert.fechaActivacion)}
-          </dd>
-          <dt className="text-ink-secondary">Full hasta</dt>
-          <dd>{formatDate(cert.fechaFinFull)} (12 meses)</dd>
-          <dt className="text-ink-secondary">Prorrateo hasta</dt>
-          <dd>{formatDate(cert.fechaFinProrrateo)} (24 meses)</dd>
-          <dt className="text-ink-secondary">Vehículo</dt>
-          <dd>
-            {cert.vehiculo.marca} {cert.vehiculo.modelo} {cert.vehiculo.anio}
-          </dd>
-          <dt className="text-ink-secondary">Tipo de uso</dt>
-          <dd>{tiposUso.find((t) => t.id === cert.tipoUsoId)?.nombre ?? cert.tipoUsoId}</dd>
-          {cert.heredadoDe ? (
-            <>
-              <dt className="text-ink-secondary">Heredado de</dt>
-              <dd>
-                <Link className="text-viamar-700" to={`/certificados/${cert.heredadoDe}`}>
+      <MetricGrid columns={4}>
+        <MetricCard
+          label="Estado de la cobertura"
+          value={<span className="text-metric-lg">{tramo}</span>}
+          icon={cert.estado === 'E' ? ShieldCheck : FileX2}
+          tone={cert.estado !== 'E' ? 'danger' : tramo === 'Vencido' ? 'neutral' : 'ok'}
+          context={`${transcurridos} meses desde la activación`}
+        />
+        <MetricCard
+          label="Cobertura completa hasta"
+          value={<span className="text-metric-lg">{formatDate(cert.fechaFinFull)}</span>}
+          icon={BadgeCheck}
+          tone="brand"
+          context="12 meses desde la activación"
+        />
+        <MetricCard
+          label="Prorrateo hasta"
+          value={<span className="text-metric-lg">{formatDate(cert.fechaFinProrrateo)}</span>}
+          icon={Repeat}
+          tone="accent"
+          context="24 meses desde la activación"
+        />
+        <MetricCard
+          label="Venta"
+          value={<span className="text-metric-lg">{formatDate(cert.fechaVenta)}</span>}
+          icon={FileText}
+          tone="neutral"
+          context={`NCF ${cert.facturaNcf}`}
+        />
+      </MetricGrid>
+
+      <section className={cn(PANEL, 'px-4 pb-4 pt-3.5')}>
+        <PanelHeader title="Vigencia de la garantía" info="Tramo completo los primeros 12 meses; prorrateo hasta el mes 24." />
+        <div className="mt-4">
+          <div className="relative flex h-3 overflow-hidden rounded-full bg-neutral-100">
+            <span className="h-full w-1/2 bg-success/80" />
+            <span className="h-full w-1/2 bg-info/70" />
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-0 w-[3px] rounded-full bg-[#0b2b4c] shadow-[0_0_0_2px_white]"
+              style={{ left: `${Math.min(100, (transcurridos / 24) * 100)}%` }}
+            />
+          </div>
+          <div className="mt-2 flex justify-between text-body-xs text-ink-tertiary">
+            <span>Activación · {formatDate(cert.fechaActivacion)}</span>
+            <span>Fin completa · {formatDate(cert.fechaFinFull)}</span>
+            <span>Fin prorrateo · {formatDate(cert.fechaFinProrrateo)}</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-3.5 lg:grid-cols-2">
+        <SectionCard title="Cliente y venta" icon={<UserRound />}>
+          <dl className="divide-y divide-line-subtle">
+            <Fila label="Cliente">{cliente?.nombre ?? cert.clienteId}</Fila>
+            <Fila label="Documento">{cliente?.documento ?? '—'}</Fila>
+            <Fila label="Dealer">{dealer?.nombre ?? 'Venta directa Viamar'}</Fila>
+            <Fila label="NCF">{cert.facturaNcf}</Fila>
+            <Fila label="Venta / activación">
+              {formatDate(cert.fechaVenta)} / {formatDate(cert.fechaActivacion)}
+            </Fila>
+          </dl>
+        </SectionCard>
+        <SectionCard title="Vehículo y uso" icon={<Car />}>
+          <dl className="divide-y divide-line-subtle">
+            <Fila label="Vehículo">
+              {cert.vehiculo.marca} {cert.vehiculo.modelo} {cert.vehiculo.anio}
+            </Fila>
+            <Fila label="Tipo de uso">{tiposUso.find((t) => t.id === cert.tipoUsoId)?.nombre ?? cert.tipoUsoId}</Fila>
+            <Fila label="Serial">
+              <SerialCell serial={cert.serial} />
+            </Fila>
+            {cert.heredadoDe ? (
+              <Fila label="Heredado de">
+                <Link
+                  className="inline-flex items-center gap-1 font-semibold text-viamar-500 hover:underline"
+                  to={`/certificados/${cert.heredadoDe}`}
+                >
                   {cert.heredadoDe}
+                  <ArrowRight size={13} />
                 </Link>
-              </dd>
-            </>
-          ) : null}
-        </dl>
+              </Fila>
+            ) : null}
+          </dl>
+        </SectionCard>
       </div>
       <Modal
         open={confirmOpen}
         title="Cancelar certificado"
+        description={`El certificado de ${cert.serial} pasará a CERT-C y bloqueará la honra del serial.`}
+        icon={FileX2}
+        tone="danger"
         onClose={() => setConfirmOpen(false)}
         footer={
           <>
@@ -510,3 +630,11 @@ export function CertificateDetailPage() {
   )
 }
 
+function Fila({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[150px_1fr] gap-3 py-2 text-body-sm">
+      <dt className="text-ink-tertiary">{label}</dt>
+      <dd className="min-w-0 text-ink">{children}</dd>
+    </div>
+  )
+}

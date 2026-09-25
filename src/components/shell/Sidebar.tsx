@@ -20,11 +20,12 @@ import {
 } from 'lucide-react'
 import { NAV_DEALER, NAV_OPERACIONES, NAV_SISTEMAS, type NavItem } from '../../domain/nav'
 import { can } from '../../domain/permissions'
-import type { Capability, Role } from '../../domain/types'
+import type { Capability, Role, Usuario } from '../../domain/types'
 import { ViamarLogo } from '../brand/ViamarLogo'
 import { useInspectionStore } from '../../stores/inspectionStore'
 import { useWarrantyStore } from '../../stores/warrantyStore'
 import { cn } from '../../lib/cn'
+import { UserMenu } from './UserMenu'
 
 const ICONS: Record<NavItem['icon'], typeof LayoutDashboard> = {
   layout: LayoutDashboard,
@@ -91,8 +92,8 @@ function Section({
                     'transition-colors duration-fast ease-brand',
                     collapsed ? 'justify-center px-0' : 'px-2.5',
                     isActive
-                      ? 'bg-white/[0.13] font-semibold text-white'
-                      : 'text-white/65 hover:bg-white/[0.07] hover:text-white',
+                      ? 'bg-gradient-to-r from-[#3b5d7d] to-[#34557a] font-semibold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+                      : 'text-white/80 hover:bg-white/[0.07] hover:text-white',
                   )
                 }
               >
@@ -102,13 +103,13 @@ function Section({
                     {isActive ? (
                       <span
                         aria-hidden="true"
-                        className="absolute -left-1.5 top-2 bottom-2 w-0.5 rounded-full bg-viamar-accent"
+                        className="absolute bottom-[3px] left-0 top-[3px] w-[3px] rounded-full bg-[#3a86d6]"
                       />
                     ) : null}
                     <Icon
                       size={17}
                       strokeWidth={1.8}
-                      className={cn('shrink-0', isActive ? 'text-white' : 'text-white/55')}
+                      className={cn('shrink-0', isActive ? 'text-white' : 'text-white/70')}
                     />
                     {!collapsed ? (
                       <>
@@ -145,9 +146,11 @@ type Props = {
   role: Role
   matrix: Record<Role, Record<Capability, boolean>>
   variant: 'internal' | 'dealer'
+  /** Usuario de la sesión: su identidad y su menú de cuenta van al pie. */
+  user?: Usuario
 }
 
-export function Sidebar({ role, matrix, variant }: Props) {
+export function Sidebar({ role, matrix, variant, user }: Props) {
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.localStorage.getItem(COLLAPSE_KEY) === '1',
   )
@@ -188,23 +191,28 @@ export function Sidebar({ role, matrix, variant }: Props) {
     <aside
       className={cn(
         'relative flex h-screen shrink-0 flex-col text-white',
-        /* Degradado vertical muy contenido: da profundidad a la columna sin
-           convertirse en decoración. Los tres tonos son azules de marca. */
-        'bg-gradient-to-b from-[#134364] via-viamar-900 to-[#092539]',
+        /* Azul marino de la maqueta aprobada, con un degradado apenas
+           perceptible: la columna tiene fondo, no decoración. */
+        'bg-gradient-to-b from-[#0b2b4c] via-[#0a2843] to-[#0a2846]',
         'transition-[width] duration-200 ease-brand',
         isCollapsed ? 'w-[64px]' : 'w-sidebar',
       )}
     >
-      {/* Identidad: el logo necesita fondo claro para conservar sus colores. */}
-      <div className={cn('shrink-0 px-3 pb-1 pt-3.5', isCollapsed && 'px-2')}>
-        <div
+      {/* Identidad sin placa: versión en negativo del logo oficial. Las letras
+          pasan a blanco —el azul corporativo se pierde sobre el marino— y la
+          esfera conserva su degradado; una sombra corta le da relieve. */}
+      <div
+        className={cn(
+          'flex shrink-0 items-center px-5 pb-2 pt-5',
+          isCollapsed && 'justify-center px-2',
+        )}
+      >
+        <ViamarLogo
           className={cn(
-            'flex items-center justify-center rounded-xl bg-white shadow-sm',
-            isCollapsed ? 'px-1 py-2.5' : 'px-3 py-2.5',
+            'logo-negativo w-auto',
+            isCollapsed ? 'h-4' : 'h-9',
           )}
-        >
-          <ViamarLogo className={cn('w-auto', isCollapsed ? 'h-5' : 'h-7')} />
-        </div>
+        />
       </div>
 
       <nav className="scroll-slim flex-1 overflow-y-auto pb-2">
@@ -235,6 +243,13 @@ export function Sidebar({ role, matrix, variant }: Props) {
         </button>
         {!isCollapsed ? (
           <p className="mt-1.5 px-2.5 text-label-sm text-white/25">Prototipo · v0.5</p>
+        ) : null}
+
+        {/* La cuenta cierra la columna: abajo a la izquierda, donde se busca. */}
+        {user ? (
+          <div className="mt-2.5 border-t border-white/10 pt-2.5">
+            <UserMenu user={user} placement="sidebar" collapsed={isCollapsed} />
+          </div>
         ) : null}
       </footer>
     </aside>

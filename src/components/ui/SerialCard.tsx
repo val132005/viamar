@@ -9,8 +9,8 @@ type Props = {
 
 export function SerialCard({ serial, articulo, estadoId, ubicacion }: Props) {
   return (
-    <article className="surface surface-hover p-4 flex flex-col gap-2">
-      <p className="font-code-serial text-viamar-700">{serial}</p>
+    <article className="surface flex flex-col gap-2 p-4 transition-shadow duration-200 hover:shadow-md">
+      <p className="font-semibold tabular-nums text-viamar-500">{serial}</p>
       {articulo ? <p className="text-body-md">{articulo}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
         {estadoId ? <StatusBadge catalogId={estadoId} /> : null}

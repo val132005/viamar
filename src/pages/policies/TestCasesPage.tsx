@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, CircleCheck, CircleX } from 'lucide-react'
+import { ArrowLeft, CircleCheck, CircleX, FlaskConical, ShieldCheck, ShieldX } from 'lucide-react'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { MetricGrid } from '../../components/ui/Workspace'
 import { DataTable } from '../../components/ui/DataTable'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pill, StatusDot } from '../../components/ui/Pill'
@@ -22,9 +24,10 @@ export function TestCasesPage() {
   })
   const passed = rows.filter((x) => x.ok).length
   const allPassed = passed === rows.length
+  const admisibles = rows.filter((x) => x.r.admisible).length
 
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         breadcrumbs={[
           { label: 'Políticas y fórmulas', to: '/configuracion/politicas' },
@@ -46,8 +49,42 @@ export function TestCasesPage() {
         }
       />
 
+      <MetricGrid columns={4}>
+        <MetricCard
+          label="Casos del motor"
+          value={rows.length}
+          icon={FlaskConical}
+          tone="brand"
+          context="Mismos casos que ejecuta Vitest"
+        />
+        <MetricCard
+          label="Coinciden con Vitest"
+          value={passed}
+          note={`de ${rows.length}`}
+          icon={CircleCheck}
+          tone="ok"
+          filled={allPassed}
+          context={allPassed ? 'El motor responde lo esperado' : 'Revisa los casos en rojo'}
+        />
+        <MetricCard
+          label="Admisibles"
+          value={admisibles}
+          icon={ShieldCheck}
+          tone="accent"
+          context="Casos que el motor honra"
+        />
+        <MetricCard
+          label="Rechazados"
+          value={rows.length - admisibles}
+          icon={ShieldX}
+          tone="neutral"
+          context="Fuera de plazo, umbral o certificado"
+        />
+      </MetricGrid>
+
       <DataTable
-        density="default"
+        title="Resultados por caso"
+        fill={false}
         columns={[
           { key: 'caso', header: 'Caso', primary: true, render: ({ c }) => c.nombre },
           {

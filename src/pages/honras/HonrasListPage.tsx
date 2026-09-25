@@ -1,34 +1,33 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Activity,
   CircleCheck,
   CircleX,
+  Clock,
   Coins,
   FileText,
-  Lightbulb,
-  ListFilter,
-  PieChart,
   Plus,
   Shield,
-  TrendingUp,
-  User,
 } from 'lucide-react'
-import { ActivityFeed, type FeedItem } from '../../components/ui/ActivityFeed'
+import {
+  ActividadReciente,
+  DonaEstado,
+  PanelHeader,
+  ResumenCard,
+  type ItemActividad,
+} from '../../components/panel/PanelWidgets'
+import { PANEL, TONO_HEX } from '../../components/panel/tonos'
+import { cn } from '../../lib/cn'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
 import { DetailDrawer, DrawerFacts, DrawerSection } from '../../components/ui/DetailDrawer'
 import { InsightPanel } from '../../components/ui/InsightPanel'
-import { StatCard } from '../../components/ui/KpiTile'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { Pill } from '../../components/ui/Pill'
 import { RangeFilter } from '../../components/ui/RangeFilter'
-import { SectionCard } from '../../components/ui/SectionCard'
 import { SerialCell } from '../../components/ui/SerialCell'
 import { TwoLine } from '../../components/ui/TwoLine'
-import { MetricGrid, WorkspaceRow } from '../../components/ui/Workspace'
-import { ChartLegend, TrendChart } from '../../components/ui/charts/TrendChart'
-import { DonutChart } from '../../components/ui/charts/DonutChart'
+import { TrendChart } from '../../components/ui/charts/TrendChart'
 import {
   compactar,
   insightConcentracion,
@@ -152,14 +151,12 @@ export function HonrasListPage() {
         label: 'Mostrador',
         valor: actuales.filter((h) => h.origen === 'mostrador').length,
         tono: 'brand' as const,
-        onClick: () => setTab('mostrador'),
       },
       {
         id: 'dealer',
         label: 'Distribuidor',
         valor: actuales.filter((h) => h.origen === 'dealer').length,
         tono: 'accent' as const,
-        onClick: () => setTab('dealer'),
       },
     ],
     [actuales],
@@ -215,20 +212,34 @@ export function HonrasListPage() {
   )
 
   /* Actividad reciente: los últimos movimientos, no una segunda tabla. */
-  const actividad = useMemo<FeedItem[]>(
+  const actividad = useMemo<ItemActividad[]>(
     () =>
-      actuales.slice(0, 4).map((h) => ({
-        id: h.id,
-        tone: tonoDe(h),
-        estado: honraEstadoLabel(h.estado, h.origen),
-        title: h.serialOriginal,
-        detail: h.origen === 'dealer' ? 'Distribuidor' : 'Mostrador',
-        meta: h.resultadoCalculo.admisible
-          ? `Acredita ${usd(h.resultadoCalculo.montoAcreditar)}`
-          : motivoLabel(h.resultadoCalculo.motivoRechazo),
-        time: tiempoRelativo(h.fechaCalculo),
-        to: `/serial/${h.serialOriginal}`,
-      })),
+      actuales.slice(0, 4).map((h) => {
+        const tono = tonoDe(h)
+        return {
+          id: h.id,
+          titulo: (
+            <>
+              {h.serialOriginal} <span className="font-normal text-ink-secondary">·</span>{' '}
+              {honraEstadoLabel(h.estado, h.origen).toLowerCase()}
+              <span className="font-normal text-ink-secondary">
+                {' '}
+                ·{' '}
+                {h.resultadoCalculo.admisible
+                  ? `acredita ${usd(h.resultadoCalculo.montoAcreditar)}`
+                  : motivoLabel(h.resultadoCalculo.motivoRechazo).toLowerCase()}
+              </span>
+            </>
+          ),
+          quien: h.origen === 'dealer' ? 'Distribuidor' : 'Mostrador',
+          cuando: tiempoRelativo(h.fechaCalculo),
+          cuandoExacto: formatDate(h.fechaCalculo),
+          icon: tono === 'ok' ? CircleCheck : tono === 'danger' ? CircleX : Clock,
+          tono,
+          macizo: tono !== 'warn',
+          to: `/serial/${h.serialOriginal}`,
+        }
+      }),
     [actuales],
   )
 
@@ -245,12 +256,9 @@ export function HonrasListPage() {
   }, [actuales, tab, q])
 
   const detalle = actuales.find((h) => h.id === detalleId) ?? null
-  /* El rango exacto ya está escrito en el filtro de la cabecera: repetirlo en
-     cada tarjeta alarga la línea hasta invadir la curva. */
-  const comparaLabel = periodo.meses ? 'vs. período anterior' : undefined
 
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         breadcrumbs={[{ label: 'Inicio', to: '/' }, { label: 'Honras de garantía' }]}
         title="Honras de garantía"
@@ -265,89 +273,79 @@ export function HonrasListPage() {
         }
       />
 
-      {/* Dos filas, no cinco columnas: el volumen y su desenlace se leen juntos,
-          y el dinero aparte. Apretadas en una sola fila, las etiquetas largas
-          se cortaban y la cifra perdía el sitio que la hace legible. */}
-      <MetricGrid columns={3}>
-        <StatCard
+      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+        <ResumenCard
           label="Total de registros"
           value={actuales.length}
-          emphasis="lead"
+          note="Registradas en el período"
           icon={FileText}
+          tone="brand"
           trend={valores(serieTotal)}
           change={variacion(actuales.length, previos.length, comparable)}
-          changeLabel={comparaLabel}
+          context={`${pendientes.length} pendientes`}
         />
-        <StatCard
+        <ResumenCard
           label="Ejecutadas"
           value={ejecutadas.length}
-          tone="ok"
+          note={`${Math.round((ejecutadas.length / Math.max(1, actuales.length)) * 100)}% del total`}
           icon={CircleCheck}
+          tone="ok"
           trend={valores(serieEjecutadas)}
           change={variacion(ejecutadas.length, prevEjecutadas.length, comparable)}
-          progress={{
-            value: ejecutadas.length,
-            total: Math.max(1, actuales.length),
-            label: `${Math.round((ejecutadas.length / Math.max(1, actuales.length)) * 100)}% del total`,
-          }}
+          context="Honras acreditadas"
         />
-        <StatCard
+        <ResumenCard
           label="Rechazadas"
           value={rechazadas.length}
-          tone="danger"
-          emphasis={rechazadas.length > 0 ? 'attention' : 'default'}
+          note={`${Math.round((rechazadas.length / Math.max(1, actuales.length)) * 100)}% del total`}
           icon={CircleX}
+          tone="danger"
           trend={valores(serieRechazadas)}
           change={variacion(rechazadas.length, prevRechazadas.length, comparable)}
           subirEsBueno={false}
-          progress={{
-            value: rechazadas.length,
-            total: Math.max(1, actuales.length),
-            label: `${Math.round((rechazadas.length / Math.max(1, actuales.length)) * 100)}% del total`,
-          }}
+          context="No admisibles"
         />
-      </MetricGrid>
-
-      <MetricGrid columns={2}>
-        <StatCard
+        <ResumenCard
           label="Acreditado"
           value={usd(acreditado)}
-          tone="accent"
+          note={`Cliente asume ${usd(aCliente)}`}
           icon={Coins}
+          tone="accent"
           trend={valores(serieAcreditado)}
           change={variacion(acreditado, prevAcreditado, comparable)}
-          changeLabel={comparaLabel}
-          hint={`En ${ejecutadas.length} honras ejecutadas`}
+          context={`En ${ejecutadas.length} honras`}
         />
-        <StatCard
-          label="Asumido por el cliente"
-          value={usd(aCliente)}
-          tone="neutral"
-          icon={User}
-          hint={
-            actuales.length > 0
-              ? `${usd(aCliente / actuales.length)} de media por honra`
-              : 'Sin honras en el período'
-          }
-        />
-      </MetricGrid>
+      </div>
 
-      {/* Espacio analítico: cómo evoluciona, de dónde viene y qué se lee de ello. */}
-      <WorkspaceRow layout="split-2-1-1">
-        <SectionCard
-          title="Tendencia de honras"
-          description="Volumen mensual por desenlace"
-          icon={<TrendingUp size={15} />}
-          toolbar={
-            <ChartLegend
-              items={[
-                { id: 'total', label: 'Total', tono: 'brand' },
-                { id: 'ok', label: 'Ejecutadas', tono: 'ok' },
-                { id: 'ko', label: 'Rechazadas', tono: 'danger' },
-              ]}
+      {/* Espacio analítico: de dónde viene y cómo evoluciona. */}
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader
+            title="Distribución por origen"
+            info="Mostrador frente a piloto de distribuidores. Pulsa un origen para filtrar la tabla."
+          />
+          <div className="mt-3">
+            <DonaEstado
+              unidad="honras"
+              segmentos={porOrigen.map((o) => ({ id: o.id, label: o.label, valor: o.valor, tono: o.tono }))}
             />
-          }
-        >
+          </div>
+        </section>
+
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader title="Tendencia de honras" info="Volumen mensual por desenlace." />
+          <ul className="mb-1 mt-1 flex flex-wrap items-center justify-center gap-x-7 gap-y-1">
+            {[
+              { id: 'total', label: 'Total', tono: 'brand' as const },
+              { id: 'ok', label: 'Ejecutadas', tono: 'ok' as const },
+              { id: 'ko', label: 'Rechazadas', tono: 'danger' as const },
+            ].map((l) => (
+              <li key={l.id} className="flex items-center gap-2 text-body-xs text-ink">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: TONO_HEX[l.tono] }} aria-hidden="true" />
+                {l.label}
+              </li>
+            ))}
+          </ul>
           <TrendChart
             labels={serieTotal.map((p) => p.label)}
             series={[
@@ -355,42 +353,30 @@ export function HonrasListPage() {
               { id: 'ok', label: 'Ejecutadas', tono: 'ok', data: valores(serieEjecutadas) },
               { id: 'ko', label: 'Rechazadas', tono: 'danger', data: valores(serieRechazadas) },
             ]}
-            height={200}
+            height={150}
           />
-        </SectionCard>
+        </section>
+      </div>
 
-        <SectionCard
-          title="Distribución por origen"
-          description="Mostrador frente a piloto de distribuidores"
-          icon={<PieChart size={15} />}
-        >
-          <DonutChart segmentos={porOrigen} unidad="registros" size={148} />
-        </SectionCard>
-
-        <SectionCard
-          title="Insights principales"
-          description="Lecturas derivadas del período"
-          icon={<Lightbulb size={15} />}
-        >
-          <InsightPanel insights={insights} />
-        </SectionCard>
-      </WorkspaceRow>
-
-      {actividad.length > 0 ? (
-        <SectionCard
-          title="Actividad reciente"
-          description="Últimos movimientos registrados"
-          icon={<Activity size={15} />}
-          className="shrink-0"
-        >
-          <ActivityFeed items={actividad} variant="cards" />
-        </SectionCard>
-      ) : null}
+      <div className="grid gap-3.5 lg:grid-cols-2">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-2 pt-3.5')}>
+          <PanelHeader title="Actividad reciente" />
+          <div className="mt-1.5">
+            <ActividadReciente items={actividad} />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader title="Lecturas del período" info="Conclusiones derivadas de las cifras del período elegido." />
+          <div className="mt-2">
+            <InsightPanel insights={insights} />
+          </div>
+        </section>
+      </div>
 
       {/* Capa de detalle: la tabla llega después del resumen, no antes. */}
       <DataTable
         title="Listado de honras"
-        icon={<ListFilter size={15} />}
+        fill={false}
         tabs={[
           { id: 'todas', label: 'Todas', count: actuales.length },
           {
@@ -645,7 +631,7 @@ export function HonrasListPage() {
                   ]}
                 />
                 {!detalle.resultadoCalculo.admisible ? (
-                  <p className="mt-3 rounded-sm bg-critical-soft px-3 py-2 text-body-sm text-critical-text">
+                  <p className="mt-3 rounded-lg border border-critical-border/60 bg-critical-soft/70 px-3 py-2 text-body-sm text-critical-text">
                     No admisible: {motivoLabel(detalle.resultadoCalculo.motivoRechazo)}.
                   </p>
                 ) : null}
@@ -674,7 +660,7 @@ export function HonrasListPage() {
           ) : (
             <>
               <DrawerSection title="Fórmula aplicada">
-                <pre className="scroll-slim overflow-x-auto rounded-sm bg-surface-subtle px-3 py-2.5 font-mono text-body-xs text-ink">
+                <pre className="scroll-slim overflow-x-auto rounded-lg border border-[#e6edf5] bg-[#f7fafd] px-3 py-2.5 font-mono text-body-xs text-ink">
                   {detalle.resultadoCalculo.formulaAplicada}
                 </pre>
               </DrawerSection>

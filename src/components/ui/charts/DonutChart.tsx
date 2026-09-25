@@ -6,7 +6,7 @@ const COLOR: Record<SerieTono, string> = {
   brand: '#206AA9',
   accent: '#039BE5',
   ok: '#1F7A34',
-  warn: '#B4690E',
+  warn: '#4A5D78',
   danger: '#C0392F',
   neutral: '#CFD7E1',
 }

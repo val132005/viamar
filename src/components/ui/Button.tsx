@@ -33,11 +33,12 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: cn(
-    'bg-viamar-500 text-white border border-viamar-500',
-    'hover:bg-viamar-600 hover:border-viamar-600',
-    'active:bg-viamar-700 active:border-viamar-700',
+    'border border-transparent bg-gradient-to-b from-[#0a6fe8] to-[#0463dc] text-white',
+    'shadow-[0_2px_6px_rgba(4,100,220,0.25)]',
+    'hover:from-[#0866da] hover:to-[#0359c8]',
+    'active:from-[#0359c8] active:to-[#034fb3]',
     'focus-visible:shadow-focus',
-    'disabled:bg-viamar-200 disabled:border-viamar-200 disabled:text-white',
+    'disabled:from-viamar-200 disabled:to-viamar-200 disabled:shadow-none disabled:text-white',
   ),
   secondary: cn(
     'bg-white text-ink border border-line-strong',
@@ -83,7 +84,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
 
 const SIZES: Record<ButtonSize, string> = {
   sm: 'h-control-sm px-2.5 text-label-md gap-1.5 rounded-sm',
-  md: 'h-control px-3 text-label-lg gap-2 rounded',
+  md: 'h-control px-3.5 text-label-lg gap-2 rounded-[6px]',
   lg: 'h-control-lg px-4 text-body-md font-semibold gap-2 rounded',
 }
 

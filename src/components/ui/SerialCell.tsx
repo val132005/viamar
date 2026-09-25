@@ -24,8 +24,9 @@ export function SerialCell({
     <Link
       to={href}
       className={cn(
-        'group inline-flex min-w-0 items-center gap-1.5 font-code-serial text-viamar-700',
-        'transition-colors duration-fast hover:text-viamar-500 hover:underline underline-offset-2',
+        /* El serial de la tabla del panel: azul de marca, seminegrita, subrayado al pasar. */
+        'group inline-flex min-w-0 items-center gap-1.5 font-semibold tabular-nums text-viamar-500',
+        'transition-colors duration-fast hover:text-viamar-600 hover:underline underline-offset-2',
         className,
       )}
     >

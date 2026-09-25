@@ -10,6 +10,14 @@ import {
   XCircle,
 } from 'lucide-react'
 import { DataTable, CellStack } from '../../components/ui/DataTable'
+import {
+  DonaEstado,
+  PanelHeader,
+  Ranking,
+  UnderlineTabs,
+  type SegmentoDona,
+} from '../../components/panel/PanelWidgets'
+import { PANEL } from '../../components/panel/tonos'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Button } from '../../components/ui/Button'
@@ -19,7 +27,6 @@ import { MetricGrid } from '../../components/ui/Workspace'
 import { Pill, type PillTone } from '../../components/ui/Pill'
 import { SerialCell } from '../../components/ui/SerialCell'
 import { StackBar } from '../../components/ui/StackBar'
-import { SegmentedControl } from '../../components/ui/FilterBar'
 import { formatDate, iso } from '../../domain/dates'
 import type { DealerPerfil } from '../../domain/entities'
 import { useBatteryStore } from '../../stores/batteryStore'
@@ -71,6 +78,7 @@ export function DealersListPage() {
   const dealers = useDistributorStore((s) => s.dealers)
   const baterias = useBatteryStore((s) => s.baterias)
   const [q, setQ] = useState('')
+  const [perfil, setPerfil] = useState<'todos' | DealerPerfil>('todos')
 
   const rows = useMemo(
     () =>
@@ -91,21 +99,47 @@ export function DealersListPage() {
   const impecables = rows.filter((r) => r.perfil === 'impecable').length
 
   const filtered = useMemo(() => {
-    if (!q) return rows
     const needle = q.toLowerCase()
     return rows.filter(
       (r) =>
-        r.nombre.toLowerCase().includes(needle) ||
-        r.localidad.toLowerCase().includes(needle) ||
-        r.rnc.toLowerCase().includes(needle),
+        (perfil === 'todos' || r.perfil === perfil) &&
+        (!needle ||
+          r.nombre.toLowerCase().includes(needle) ||
+          r.localidad.toLowerCase().includes(needle) ||
+          r.rnc.toLowerCase().includes(needle)),
     )
-  }, [rows, q])
+  }, [rows, q, perfil])
+
+  const porPerfil = (p: DealerPerfil) => rows.filter((r) => r.perfil === p).length
+  const sano = Math.max(0, totalStock - totalAged - totalIncidencias)
+  const saludStock: SegmentoDona[] = [
+    { id: 'regla', label: 'En regla', valor: sano, tono: 'ok' },
+    { id: 'aged', label: `Envejecido (>${AGE_LIMIT_DAYS}d)`, valor: totalAged, tono: 'warn' },
+    { id: 'incidencia', label: 'Con incidencia', valor: totalIncidencias, tono: 'danger' },
+  ]
+  const ranking = [...rows]
+    .sort((a, b) => b.stock - a.stock)
+    .slice(0, 6)
+    .map((r) => ({ id: r.id, label: r.nombre, valor: r.stock, to: `/distribuidores/${r.id}` }))
 
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         title="Red de distribuidores y dealers"
         description="Supervisión de inventario en consignación, control de rotación FIFO, salud del stock y baterías envejecidas en puntos de venta."
+        tabs={
+          <UnderlineTabs
+            active={perfil}
+            onChange={setPerfil}
+            tabs={[
+              { id: 'todos', label: 'Todos', count: rows.length },
+              { id: 'incidencias', label: 'Con incidencias', count: porPerfil('incidencias'), tone: 'danger' },
+              { id: 'envejecido', label: 'Envejecidos', count: porPerfil('envejecido') },
+              { id: 'impecable', label: 'Impecables', count: porPerfil('impecable') },
+              { id: 'normal', label: 'Estándar', count: porPerfil('normal') },
+            ]}
+          />
+        }
       />
 
       <MetricGrid columns={4}>
@@ -146,10 +180,27 @@ export function DealersListPage() {
         />
       </MetricGrid>
 
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader
+            title="Salud del stock en consignación"
+            info="Cada unidad en dealer se cuenta una vez: primero la incidencia, luego la antigüedad."
+          />
+          <div className="mt-3">
+            <DonaEstado segmentos={saludStock} unidad="baterías" />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader title="Dealers por stock" info="Unidades en consignación de cada punto de venta." />
+          <div className="mt-1.5">
+            <Ranking filas={ranking} total={totalStock} />
+          </div>
+        </section>
+      </div>
+
       <DataTable
         title="Stock por dealer"
-        icon={<Warehouse size={15} />}
-        density="compact"
+        fill={false}
         search={{ value: q, onChange: setQ, placeholder: 'Filtrar por dealer, RNC o localidad…' }}
         columns={[
           {
@@ -159,7 +210,7 @@ export function DealersListPage() {
             sortable: true,
             render: (d) => (
               <Link
-                className="block truncate text-viamar-700 font-semibold underline-offset-2 hover:text-viamar-500 hover:underline"
+                className="block truncate font-semibold text-viamar-500 underline-offset-2 hover:text-viamar-600 hover:underline"
                 to={`/distribuidores/${d.id}`}
                 title={d.nombre}
               >
@@ -300,6 +351,43 @@ export function DealerDetailPage() {
   )
 
   const agedCount = inv.filter((b) => b.edad > AGE_LIMIT_DAYS).length
+  const incidenciaCount = inv.filter((b) => INCIDENCIA_DIAG.has(b.diagnosticoId)).length
+
+  const porDiagnostico: SegmentoDona[] = useMemo(() => {
+    const TONO: Record<string, SegmentoDona['tono']> = {
+      BUEN_ESTADO: 'ok',
+      DESCARGADA: 'warn',
+      PARA_GARANTIA: 'danger',
+      DANADA: 'navy',
+      PENDIENTE: 'neutral',
+    }
+    const LABEL: Record<string, string> = {
+      BUEN_ESTADO: 'Buen estado',
+      DESCARGADA: 'Descargada',
+      PARA_GARANTIA: 'Para garantía',
+      DANADA: 'Dañada',
+      PENDIENTE: 'Pendiente',
+    }
+    return Object.keys(TONO).map((d) => ({
+      id: d,
+      label: LABEL[d],
+      valor: inv.filter((b) => b.diagnosticoId === d).length,
+      tono: TONO[d],
+    }))
+  }, [inv])
+
+  const porArticulo = useMemo(() => {
+    const cuenta = new Map<string, number>()
+    for (const b of inv) cuenta.set(b.articuloId, (cuenta.get(b.articuloId) ?? 0) + 1)
+    return [...cuenta.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([artId, valor]) => ({
+        id: artId,
+        label: articulos.find((a) => a.id === artId)?.descripcion ?? artId,
+        valor,
+      }))
+  }, [inv, articulos])
 
   const filteredInv = useMemo(() => {
     return inv.filter((b) => {
@@ -389,7 +477,7 @@ export function DealerDetailPage() {
   }
 
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         breadcrumbs={[
           { label: 'Distribuidores', to: '/distribuidores' },
@@ -421,7 +509,7 @@ export function DealerDetailPage() {
         />
       ) : (
         <>
-        <MetricGrid columns={3}>
+        <MetricGrid columns={4}>
           <MetricCard
             label="Total en stock"
             value={inv.length}
@@ -449,23 +537,41 @@ export function DealerDetailPage() {
             filled={inv.length - agedCount > 0}
             context={`Dentro de los ${AGE_LIMIT_DAYS} días`}
           />
+          <MetricCard
+            label="Con incidencia"
+            value={incidenciaCount}
+            icon={AlertTriangle}
+            tone="danger"
+            filled={incidenciaCount > 0}
+            context="Descargadas, dañadas o para garantía"
+          />
         </MetricGrid>
 
-        <section className="surface flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center justify-between border-b border-line px-3.5 py-2.5">
-            <SegmentedControl
-              value={tab}
-              onChange={(t) => setTab(t as TabFiltroInventario)}
-              options={[
-                { id: 'todos', label: 'Todo el inventario', count: inv.length },
-                { id: 'aged', label: 'Envejecidos (>180d)', count: agedCount },
-                { id: 'normal', label: 'En regla (≤180d)', count: inv.length - agedCount },
-              ]}
-            />
-          </div>
+        <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+          <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+            <PanelHeader title="Diagnóstico del inventario" info="Último diagnóstico registrado de cada unidad del punto." />
+            <div className="mt-3">
+              <DonaEstado segmentos={porDiagnostico} unidad="unidades" />
+            </div>
+          </section>
+          <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+            <PanelHeader title="Stock por artículo" info="Unidades del punto agrupadas por artículo." />
+            <div className="mt-1.5">
+              <Ranking filas={porArticulo} total={inv.length} />
+            </div>
+          </section>
+        </div>
 
           <DataTable
-            density="compact"
+            title="Inventario del punto"
+            fill={false}
+            tabs={[
+              { id: 'todos', label: 'Todo el inventario', count: inv.length },
+              { id: 'aged', label: `Envejecidos (>${AGE_LIMIT_DAYS}d)`, count: agedCount },
+              { id: 'normal', label: `En regla (≤${AGE_LIMIT_DAYS}d)`, count: inv.length - agedCount },
+            ]}
+            activeTab={tab}
+            onTabChange={(t) => setTab(t as TabFiltroInventario)}
             search={{ value: q, onChange: setQ, placeholder: 'Filtrar por serial…' }}
             columns={[
               {
@@ -495,7 +601,7 @@ export function DealerDetailPage() {
                 render: (b) =>
                   b.edad > AGE_LIMIT_DAYS ? (
                     <span className="inline-flex items-center gap-1.5 font-semibold text-warning-text">
-                      <AlertTriangle size={13} className="text-warning" /> {b.edad} días (Envejecido)
+                      <Clock size={13} className="text-warning" /> {b.edad} días · envejecido
                     </span>
                   ) : (
                     <span className="tabular-nums text-ink">{b.edad} días</span>
@@ -550,7 +656,6 @@ export function DealerDetailPage() {
             emptyTitle="Sin seriales en este criterio"
             emptyDescription="No se encontraron unidades en este rango de antigüedad o búsqueda."
           />
-        </section>
         </>
       )}
     </div>

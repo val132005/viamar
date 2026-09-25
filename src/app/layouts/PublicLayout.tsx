@@ -1,25 +1,32 @@
 import { Link, Outlet } from 'react-router-dom'
+import { LogIn } from 'lucide-react'
+import { BrandMesh } from '../../components/brand/BrandMesh'
 import { ViamarLogo } from '../../components/brand/ViamarLogo'
-import { PrototypeBanner } from '../../components/shell/PrototypeBanner'
 
+/**
+ * Superficies públicas (consulta de certificado, design system). Cabecera en
+ * el marino del menú lateral con el logo en negativo, y el contenido sobre el
+ * mismo fondo frío de la aplicación.
+ */
 export function PublicLayout() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <PrototypeBanner />
-      <header className="bg-white/85 backdrop-blur-md border-b border-app-border sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between">
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-10 overflow-hidden text-white shadow-md">
+        <BrandMesh />
+        <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5">
           <Link to="/certificado" className="inline-flex">
-            <ViamarLogo className="h-10 w-auto" />
+            <ViamarLogo className="logo-negativo h-10 w-auto" />
           </Link>
           <Link
             to="/login"
-            className="text-label-md text-viamar-700 hover:text-viamar-link-hover transition-colors"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/20 bg-white/[0.07] px-3.5 text-label-md text-white transition-colors duration-fast hover:bg-white/[0.14]"
           >
+            <LogIn size={15} aria-hidden="true" />
             Acceso interno
           </Link>
         </div>
       </header>
-      <main className="flex-1 max-w-5xl mx-auto w-full p-4 lg:p-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 p-4 lg:p-8">
         <div className="page-enter">
           <Outlet />
         </div>

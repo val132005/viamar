@@ -1,6 +1,20 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CircleAlert, CircleCheck, FlaskConical, Info } from 'lucide-react'
+import {
+  CalendarClock,
+  CircleAlert,
+  CircleCheck,
+  FileCode2,
+  FlaskConical,
+  Info,
+  Scale,
+  ShieldCheck,
+  Snowflake,
+} from 'lucide-react'
+import { SelectPill } from '../../components/panel/PanelWidgets'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { SectionCard } from '../../components/ui/SectionCard'
+import { MetricGrid } from '../../components/ui/Workspace'
 import { Button } from '../../components/ui/Button'
 import { CoverageChart } from '../../components/ui/CoverageChart'
 import { FormulaEditor } from '../../components/ui/FormulaEditor'
@@ -60,46 +74,79 @@ export function PoliciesPage() {
       <PageHeader
         title="Políticas y fórmulas"
         description="La fórmula vigente es la del FDD 489: responde el monto que Viamar acredita. El FRD 489 queda como contraste. El motor no usa eval."
+        chips={
+          politica ? (
+            <Pill tone={politica.estado === 'ACTIVA' ? 'ok' : 'neutral'} dot>
+              {politica.estado === 'ACTIVA' ? `Vigente · v${politica.version}` : politica.estado}
+            </Pill>
+          ) : null
+        }
         actions={
-          <Link to="/configuracion/casos-prueba">
-            <Button variant="secondary" leadingIcon={<FlaskConical size={15} />}>
-              Casos de prueba
-            </Button>
-          </Link>
+          <>
+            {/* El selector gobierna todo lo que hay debajo: va en la cabecera,
+                junto al título, como el filtro de período del panel. */}
+            <SelectPill
+              value={politica ? `${politica.id}::${politica.version}` : ''}
+              ariaLabel="Política"
+              className="min-w-[300px]"
+              onChange={(v) => {
+                setPoliticaKey(v)
+                const next = politicas.find((p) => `${p.id}::${p.version}` === v)
+                const f = formulas.find((x) => x.id === next?.formulaId)
+                if (f) setFormula(f.expresion)
+              }}
+              options={politicas.map((p) => ({
+                value: `${p.id}::${p.version}`,
+                label: `${p.nombre} v${p.version} (${p.estado})`,
+              }))}
+            />
+            <Link to="/configuracion/casos-prueba">
+              <Button variant="secondary" leadingIcon={<FlaskConical size={15} />}>
+                Casos de prueba
+              </Button>
+            </Link>
+          </>
         }
       />
 
-      {/* Selector de política: gobierna todo lo que hay debajo, así que va
-          en una banda propia y no escondido en la cabecera de una tarjeta. */}
-      <div className="surface flex flex-wrap items-center gap-3 px-3.5 py-2.5">
-        <label className="flex min-w-0 flex-1 items-center gap-2.5">
-          <span className="shrink-0 text-label-lg text-ink">Política</span>
-          <select
-            className="h-9 min-w-0 flex-1 rounded-md border border-line-strong bg-white px-2.5 text-body-sm text-ink focus:border-viamar-500 focus:shadow-focus focus:outline-none sm:max-w-md"
-            value={politica ? `${politica.id}::${politica.version}` : ''}
-            onChange={(e) => {
-              setPoliticaKey(e.target.value)
-              const next = politicas.find((p) => `${p.id}::${p.version}` === e.target.value)
-              const f = formulas.find((x) => x.id === next?.formulaId)
-              if (f) setFormula(f.expresion)
-            }}
-          >
-            {politicas.map((p) => (
-              <option key={`${p.id}-${p.version}`} value={`${p.id}::${p.version}`}>
-                {p.nombre} v{p.version} ({p.estado})
-              </option>
-            ))}
-          </select>
-        </label>
-        {politica ? (
-          <Pill tone={politica.estado === 'ACTIVA' ? 'ok' : 'neutral'} dot>
-            {politica.estado === 'ACTIVA' ? `Vigente · v${politica.version}` : politica.estado}
-          </Pill>
-        ) : null}
-      </div>
+      {politica ? (
+        <MetricGrid columns={4}>
+          <MetricCard
+            label="Política seleccionada"
+            value={`v${politica.version}`}
+            icon={ShieldCheck}
+            tone={politica.estado === 'ACTIVA' ? 'ok' : 'neutral'}
+            filled={politica.estado === 'ACTIVA'}
+            context={politica.nombre}
+          />
+          <MetricCard
+            label="Cobertura completa"
+            value={politica.mesesFull}
+            note="meses"
+            icon={CalendarClock}
+            tone="brand"
+            context="El cliente no paga en este tramo"
+          />
+          <MetricCard
+            label="Fin del prorrateo"
+            value={politica.mesesProrrateo}
+            note="meses"
+            icon={Scale}
+            tone="accent"
+            context="Desde ahí la honra no es admisible"
+          />
+          <MetricCard
+            label="Honras congeladas"
+            value={honrasCongeladas}
+            icon={Snowflake}
+            tone="neutral"
+            context={`Calculadas con v${politica.version}; no se recalculan`}
+          />
+        </MetricGrid>
+      ) : null}
 
       {comparacion ? (
-        <div className="grid md:grid-cols-2 gap-3">
+        <div className="grid gap-3.5 md:grid-cols-2">
           <PresetCard
             title="FDD 489"
             badge="Vigente"
@@ -123,8 +170,10 @@ export function PoliciesPage() {
         </div>
       ) : null}
       {comparacion ? (
-        <aside className="flex items-start gap-2 rounded-md bg-info-soft px-3 py-2 ring-1 ring-inset ring-info-border">
-          <Info size={15} className="mt-0.5 shrink-0 text-info" aria-hidden="true" />
+        <aside className="flex items-center gap-3 rounded-xl border border-info-border/70 bg-gradient-to-br from-white to-info-soft/70 px-4 py-2.5">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-info-soft text-info">
+            <Info size={16} aria-hidden="true" />
+          </span>
           <p className="text-body-sm text-info-text">
             Mismo caso (14 meses, USD 180): FDD responde {usd(comparacion.fdd.montoAcreditar)}{' '}
             (acreditar) y FRD responde {usd(comparacion.frd.montoCliente)} (paga el cliente). Son
@@ -135,8 +184,13 @@ export function PoliciesPage() {
         </aside>
       ) : null}
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="surface flex flex-col gap-3 p-4">
+      <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <SectionCard
+          title="Editor de fórmula"
+          description="Evaluador propio, sin eval: sólo se aceptan las variables de la lista."
+          icon={<FileCode2 />}
+          bodyClassName="flex flex-col gap-3"
+        >
           <FormulaEditor value={formula} onChange={setFormula} />
 
           {/* El veredicto de la expresión va pegado al editor y con el color
@@ -160,7 +214,7 @@ export function PoliciesPage() {
               {honrasCongeladas === 1 ? '' : 's'} en v{politica?.version}. No se recalculan.
             </p>
           </div>
-        </div>
+        </SectionCard>
         <SimulatorPanel formula={formula} politica={politica} />
       </div>
       {politica ? (
@@ -195,12 +249,21 @@ function PresetCard({
        grosor mayor: dos tarjetas de distinto grosor descuadran la fila. */
     <article
       className={cn(
-        'flex flex-col gap-2 rounded-xl border p-4',
-        vigente ? 'border-viamar-300 bg-viamar-50/60' : 'border-line bg-white',
+        'flex flex-col gap-2 rounded-xl border p-4 shadow-xs transition-[box-shadow,transform] duration-200 ease-brand hover:-translate-y-0.5 hover:shadow-md',
+        vigente ? 'border-viamar-200 bg-gradient-to-br from-white to-viamar-50' : 'border-line bg-white',
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <span
+          className={cn(
+            'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
+            vigente ? 'bg-viamar-100/80 text-viamar-600' : 'bg-neutral-100 text-ink',
+          )}
+          aria-hidden="true"
+        >
+          <FileCode2 size={20} />
+        </span>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-headline-md text-ink">{title}</h2>
             <Pill tone={vigente ? 'brand' : 'neutral'}>{badge}</Pill>
@@ -212,13 +275,13 @@ function PresetCard({
         </Button>
       </div>
 
-      <div className="mt-1">
+      <div className="mt-1 pl-[58px]">
         <p className="text-body-xs text-ink-tertiary">{primaryLabel}</p>
         <p className="text-metric-lg tabular-nums text-ink">{usd(primary)}</p>
         <p className="mt-0.5 text-body-sm text-ink-secondary">{secondary}</p>
       </div>
 
-      <p className="mt-auto pt-1 text-label-md text-ink-tertiary">Vigencia {vigencia}</p>
+      <p className="mt-auto pl-[58px] pt-1 text-label-md text-ink-tertiary">Vigencia {vigencia}</p>
     </article>
   )
 }

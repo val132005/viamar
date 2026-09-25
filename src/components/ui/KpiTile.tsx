@@ -37,13 +37,14 @@ const ICON_BOX: Record<KpiTone, string> = {
   neutral: 'bg-neutral-100 text-ink-secondary',
 }
 
+/* Como en el panel, sólo lo crítico y lo resuelto tiñen la tarjeta. */
 const ATTENTION_RING: Record<KpiTone, string> = {
-  brand: 'ring-viamar-200 bg-viamar-50/60',
-  ok: 'ring-success-border bg-success-soft/60',
-  warn: 'ring-warning-border bg-warning-soft/60',
-  danger: 'ring-critical-border bg-critical-soft/60',
-  accent: 'ring-viamar-200 bg-viamar-50/60',
-  neutral: 'ring-line bg-white',
+  brand: 'border-line bg-white',
+  ok: 'border-line bg-gradient-to-br from-white to-success-soft/60',
+  warn: 'border-line bg-white',
+  danger: 'border-critical-border/60 bg-gradient-to-br from-critical-soft/50 to-critical-soft/80',
+  accent: 'border-line bg-white',
+  neutral: 'border-line bg-white',
 }
 
 const BAR_FILL: Record<KpiTone, string> = {
@@ -124,30 +125,28 @@ export function StatCard({
         ? ArrowDownRight
         : Minus
 
+  /* El pie se alinea con la etiqueta, no con el borde del icono. */
+  const sangria = Icon ? 'pl-[58px]' : ''
+
   const body = (
     <>
-      <div className="flex items-start gap-2.5">
+      <div className="flex items-start gap-3.5">
         {Icon ? (
           <span
             className={cn(
-              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm',
+              'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
               ICON_BOX[tone],
             )}
             aria-hidden="true"
           >
-            <Icon size={16} strokeWidth={2} />
+            <Icon size={21} strokeWidth={2} />
           </span>
         ) : null}
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-label-md text-ink-secondary">{label}</p>
-          <div className="mt-0.5 flex items-baseline gap-2">
-            <span
-              className={cn(
-                'tabular-nums text-ink',
-                emphasis === 'lead' ? 'text-metric-xl' : 'text-metric-lg',
-              )}
-            >
+          <p className="truncate text-body-sm text-ink-secondary">{label}</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-metric-xl leading-none tabular-nums text-ink">
               {value}
             </span>
             {delta ? (
@@ -161,9 +160,9 @@ export function StatCard({
         {hayTendencia ? (
           <div className="mt-1 hidden shrink-0 sm:block">
             {trendKind === 'bars' ? (
-              <Sparkbars data={trend!} tone={tone} width={72} height={26} />
+              <Sparkbars data={trend!} tone={tone} width={84} height={34} />
             ) : (
-              <Sparkline data={trend!} tone={tone} width={72} height={26} />
+              <Sparkline data={trend!} tone={tone} area smooth width={84} height={34} strokeWidth={1.6} />
             )}
           </div>
         ) : null}
@@ -171,15 +170,15 @@ export function StatCard({
 
       {/* La variación va primero porque responde antes que nada a «¿va bien?». */}
       {change ? (
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-body-xs">
+        <p className={cn('mt-2.5 flex flex-wrap items-center gap-x-1.5 text-body-xs', sangria)}>
           <span
             className={cn(
-              'inline-flex items-center gap-0.5 text-label-md tabular-nums',
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-md tabular-nums',
               cambioBueno === null
-                ? 'text-ink-tertiary'
+                ? 'bg-neutral-100 text-ink-secondary'
                 : cambioBueno
-                  ? 'text-success-text'
-                  : 'text-critical-text',
+                  ? 'bg-success-soft text-success'
+                  : 'bg-critical-soft text-critical',
             )}
           >
             <ArrowIcon size={12} strokeWidth={2.4} aria-hidden="true" />
@@ -190,7 +189,7 @@ export function StatCard({
       ) : null}
 
       {progress ? (
-        <div className="mt-2">
+        <div className={cn('mt-2.5', sangria)}>
           <div
             className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100"
             role="progressbar"
@@ -214,16 +213,16 @@ export function StatCard({
         </div>
       ) : null}
 
-      {hint ? <p className="mt-1 truncate text-body-xs text-ink-tertiary">{hint}</p> : null}
+      {hint ? <p className={cn('mt-1.5 truncate text-body-xs text-ink-secondary', sangria)}>{hint}</p> : null}
     </>
   )
 
   const shell = cn(
-    'block rounded-md px-3.5 py-3 text-left ring-1 ring-inset',
-    emphasis === 'attention' ? ATTENTION_RING[tone] : 'bg-white ring-line',
-    emphasis === 'lead' && 'ring-line-brand',
-    interactive &&
-      'transition-colors duration-fast ease-brand hover:bg-surface-hover hover:ring-line-brand focus-visible:shadow-focus',
+    /* Tarjeta de resumen del panel: filo tenue, sombra mínima y un leve
+       ascenso al pasar por encima. */
+    'block rounded-xl border p-4 text-left shadow-xs transition-[border-color,box-shadow,transform] duration-200 ease-brand hover:-translate-y-0.5 hover:shadow-md',
+    emphasis === 'attention' ? ATTENTION_RING[tone] : 'border-line bg-white',
+    interactive && 'hover:border-viamar-200 focus-visible:shadow-focus',
     className,
   )
 

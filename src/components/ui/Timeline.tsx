@@ -16,22 +16,22 @@ type Props = {
 
 export function Timeline({ events, numbered = true }: Props) {
   if (events.length === 0) {
-    return <p className="text-body-sm text-ink-secondary">Sin eventos todavía.</p>
+    return <p className="py-8 text-center text-body-sm text-ink-tertiary">Sin eventos todavía.</p>
   }
   return (
-    <ol className="relative ml-1.5 pl-7">
+    <ol className="relative ml-1 pl-10">
       {/* Hilo continuo: da al historial una lectura de sucesión, no de lista. */}
-      <span aria-hidden="true" className="absolute bottom-3 left-[9px] top-3 w-px bg-line" />
+      <span aria-hidden="true" className="absolute bottom-4 left-[13px] top-4 w-[2px] rounded-full bg-viamar-100" />
       {events.map((e, i) => (
         <li key={e.id} className="relative mb-3 last:mb-0">
           {numbered ? (
-            <span className="absolute -left-7 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-viamar-500 text-label-sm font-bold tabular-nums text-white ring-4 ring-surface-sunken">
+            <span className="absolute -left-10 mt-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-viamar-500 text-label-md font-bold tabular-nums text-white ring-4 ring-white">
               {i + 1}
             </span>
           ) : (
-            <span className="absolute -left-[22px] mt-1.5 h-2.5 w-2.5 rounded-full bg-viamar-500 ring-4 ring-surface-sunken" />
+            <span className="absolute -left-[31px] mt-3 h-2.5 w-2.5 rounded-full bg-viamar-500 ring-4 ring-white" />
           )}
-          <div className="rounded border border-line bg-white px-3 py-2">
+          <div className="rounded-xl border border-line bg-white px-4 py-2.5 shadow-xs transition-[border-color,box-shadow] duration-fast hover:border-viamar-200 hover:shadow-md">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <p className="text-label-lg text-ink">{e.title}</p>

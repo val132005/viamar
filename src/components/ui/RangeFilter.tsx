@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CalendarRange, Check, ChevronDown } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown } from 'lucide-react'
 import { RANGOS, periodoLabel, type Periodo, type RangoId } from '../../domain/analytics'
 import { cn } from '../../lib/cn'
 
@@ -50,26 +50,20 @@ export function RangeFilter({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={periodoLabel(periodo)}
         className={cn(
-          'inline-flex items-center gap-2 rounded border border-line-strong bg-white px-2.5 text-left',
+          'inline-flex items-center gap-2.5 rounded-[6px] border border-[#d9e2ec] bg-white px-3 text-left',
           'transition-colors duration-fast hover:border-line-brand focus-visible:shadow-focus',
-          size === 'sm' ? 'h-control-sm' : 'h-control-md',
-          open && 'border-viamar-500',
+          size === 'sm' ? 'h-control-sm' : 'h-control',
+          open && 'border-viamar-400',
         )}
       >
-        <CalendarRange size={15} className="shrink-0 text-ink-tertiary" aria-hidden="true" />
-        <span className="min-w-0">
-          <span className="block truncate text-label-md leading-4 text-ink">{actual.label}</span>
-          {size === 'md' ? (
-            <span className="block truncate text-body-xs leading-4 text-ink-tertiary">
-              {periodoLabel(periodo)}
-            </span>
-          ) : null}
-        </span>
+        <CalendarDays size={15} className="shrink-0 text-[#1f2f47]" aria-hidden="true" />
+        <span className="truncate text-body-sm text-ink">{actual.label}</span>
         <ChevronDown
-          size={14}
+          size={15}
           className={cn(
-            'shrink-0 text-ink-tertiary transition-transform duration-fast',
+            'ml-1 shrink-0 text-[#3a4a60] transition-transform duration-fast',
             open && 'rotate-180',
           )}
         />
@@ -80,6 +74,9 @@ export function RangeFilter({
           role="listbox"
           className="surface-raised absolute right-0 z-30 mt-1 w-56 overflow-hidden py-1"
         >
+          <li className="border-b border-line-subtle px-3 pb-1.5 pt-1 text-body-xs text-ink-tertiary">
+            {periodoLabel(periodo)}
+          </li>
           {RANGOS.map((r) => {
             const on = r.id === value
             return (

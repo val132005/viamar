@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { UnderlineTabs } from '../panel/PanelWidgets'
 
 export type DrawerTab = { id: string; label: string; count?: number }
 
@@ -75,14 +77,14 @@ export function DetailDrawer({
 
   if (!montado) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true">
       <button
         type="button"
         aria-label="Cerrar panel de detalle"
         onClick={onClose}
         className={cn(
-          'flex-1 bg-viamar-950/25 transition-opacity duration-200 ease-brand',
+          'flex-1 bg-[#0b2b4c]/30 backdrop-blur-[3px] transition-opacity duration-200 ease-brand',
           open ? 'opacity-100' : 'opacity-0',
         )}
       />
@@ -97,11 +99,13 @@ export function DetailDrawer({
           open ? 'translate-x-0' : 'translate-x-full',
         )}
       >
-        <header className="shrink-0 border-b border-line px-4 pb-3 pt-3.5">
+        {/* Cabecera del panel de detalle de Trazabilidad: título, estado,
+            cierre redondo y pestañas subrayadas. */}
+        <header className="shrink-0 px-4 pt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-headline-lg text-ink">{title}</h2>
+                <h2 className="truncate text-headline-md text-ink">{title}</h2>
                 {chips}
               </div>
               {subtitle ? (
@@ -113,7 +117,7 @@ export function DetailDrawer({
               {fullView ? (
                 <Link
                   to={fullView.to}
-                  className="inline-flex h-8 items-center gap-1 rounded-sm px-2 text-label-md text-viamar-600 transition-colors duration-fast hover:bg-viamar-50"
+                  className="inline-flex h-8 items-center gap-1 rounded-[6px] border border-[#cfdbe8] px-2.5 text-label-md text-viamar-500 transition-colors duration-fast hover:bg-viamar-50"
                 >
                   {fullView.label ?? 'Ficha completa'}
                   <ArrowUpRight size={14} />
@@ -123,7 +127,7 @@ export function DetailDrawer({
                 type="button"
                 onClick={onClose}
                 aria-label="Cerrar"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-tertiary transition-colors duration-fast hover:bg-neutral-100 hover:text-ink"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-secondary transition-colors duration-fast hover:bg-surface-hover hover:text-ink"
               >
                 <X size={17} />
               </button>
@@ -131,43 +135,28 @@ export function DetailDrawer({
           </div>
 
           {tabs && tabs.length > 1 ? (
-            <div role="tablist" className="mt-3 flex items-center gap-0.5 rounded bg-neutral-100 p-0.5">
-              {tabs.map((t) => {
-                const on = t.id === activeTab
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={on}
-                    onClick={() => onTabChange?.(t.id)}
-                    className={cn(
-                      'inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-sm px-2 text-label-lg transition-colors duration-fast',
-                      on ? 'bg-white text-ink shadow-xs' : 'text-ink-secondary hover:text-ink',
-                    )}
-                  >
-                    {t.label}
-                    {t.count !== undefined ? (
-                      <span className={cn('tabular-nums', on ? 'text-viamar-600' : 'text-ink-tertiary')}>
-                        {t.count}
-                      </span>
-                    ) : null}
-                  </button>
-                )
-              })}
+            <div className="-mx-2 mt-3">
+              <UnderlineTabs
+                tabs={tabs}
+                active={activeTab ?? tabs[0].id}
+                onChange={(id) => onTabChange?.(id)}
+              />
             </div>
-          ) : null}
+          ) : (
+            <div className="mt-3 border-b border-line-subtle" />
+          )}
         </header>
 
         <div className="scroll-slim min-h-0 flex-1 overflow-y-auto px-4 py-3.5">{children}</div>
 
         {actions ? (
-          <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3">
+          <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-[#edf1f6] bg-[#f7fafd] px-4 py-3">
             {actions}
           </footer>
         ) : null}
       </aside>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -190,7 +179,7 @@ export function DrawerSection({
     <section className={cn('mb-4 last:mb-0', className)}>
       {title ? (
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-label-lg text-ink-secondary">{title}</h3>
+          <h3 className="text-label-lg text-ink">{title}</h3>
           {action}
         </div>
       ) : null}

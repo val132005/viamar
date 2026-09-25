@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Info } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
 type Props = {
@@ -8,6 +8,8 @@ type Props = {
   /** Contexto bajo el título: qué mide el bloque o de qué período habla. */
   description?: ReactNode
   icon?: ReactNode
+  /** Qué mide el bloque: se lee al pasar sobre el icono de ayuda. */
+  info?: string
   /** Controles del bloque: selector de rango, segmentado, leyenda. */
   toolbar?: ReactNode
   /** Enlace de salida al detalle completo del bloque. */
@@ -23,14 +25,16 @@ type Props = {
 }
 
 /**
- * Contenedor canónico de un bloque del workspace. Existe para que ningún
- * módulo vuelva a componer su propia cabecera de panel: la jerarquía entre
- * título, contexto y controles se decide aquí una vez.
+ * Contenedor canónico de un bloque. Es la tarjeta del panel de Dashboard y
+ * Trazabilidad: blanca, esquinas de 14 px, sombra mínima y la cabecera sin
+ * línea divisoria —el título se apoya en el aire—, salvo cuando el cuerpo va a
+ * sangre y la línea separa el título de la primera fila.
  */
 export function SectionCard({
   title,
   description,
   icon,
+  info,
   toolbar,
   link,
   flush = false,
@@ -48,27 +52,42 @@ export function SectionCard({
         className,
       )}
     >
-      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line px-3.5 py-2.5">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <header
+        className={cn(
+          'flex min-h-[46px] shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 px-4 pt-3.5',
+          flush ? 'border-b border-line-subtle pb-3' : 'pb-1',
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           {icon ? (
-            <span className="shrink-0 text-ink-tertiary" aria-hidden="true">
+            <span
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-viamar-50 text-viamar-600 [&_svg]:h-[15px] [&_svg]:w-[15px]"
+              aria-hidden="true"
+            >
               {icon}
             </span>
           ) : null}
           <div className="min-w-0">
-            <h2 className="truncate text-headline-md text-ink">{title}</h2>
+            <h2 className="flex min-w-0 items-center gap-1.5 text-headline-sm text-ink">
+              <span className="truncate">{title}</span>
+              {info ? (
+                <span title={info} className="inline-flex shrink-0 cursor-help text-ink-tertiary hover:text-viamar-500">
+                  <Info size={14} strokeWidth={2} aria-label={info} />
+                </span>
+              ) : null}
+            </h2>
             {description ? (
-              <p className="truncate text-body-xs text-ink-tertiary">{description}</p>
+              <p className="mt-0.5 truncate text-body-xs text-ink-tertiary">{description}</p>
             ) : null}
           </div>
         </div>
 
-        {toolbar ? <div className="flex shrink-0 items-center gap-2">{toolbar}</div> : null}
+        {toolbar ? <div className="flex shrink-0 flex-wrap items-center gap-2">{toolbar}</div> : null}
 
         {link ? (
           <Link
             to={link.to}
-            className="inline-flex shrink-0 items-center gap-0.5 rounded-sm px-1.5 py-1 text-label-md text-viamar-600 transition-colors duration-fast hover:bg-viamar-50 hover:text-viamar-700"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-sm px-1.5 py-1 text-label-md text-viamar-500 transition-colors duration-fast hover:bg-viamar-50 hover:text-viamar-700"
           >
             {link.label ?? 'Ver todos'}
             <ChevronRight size={14} />
@@ -79,7 +98,7 @@ export function SectionCard({
       <div
         className={cn(
           'min-h-0 flex-1',
-          flush ? '' : 'p-3.5',
+          flush ? '' : 'px-4 pb-4 pt-2.5',
           fill && 'scroll-slim overflow-y-auto',
           bodyClassName,
         )}
@@ -88,7 +107,7 @@ export function SectionCard({
       </div>
 
       {footer ? (
-        <footer className="shrink-0 border-t border-line px-3.5 py-2">{footer}</footer>
+        <footer className="shrink-0 border-t border-line-subtle bg-surface-subtle/60 px-4 py-2.5">{footer}</footer>
       ) : null}
     </section>
   )

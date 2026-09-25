@@ -30,7 +30,7 @@ const DEFAULT_ICON: Record<EmptyKind, LucideIcon> = {
 }
 
 const TONE: Record<EmptyKind, string> = {
-  empty: 'bg-neutral-100 text-neutral-500',
+  empty: 'bg-viamar-50 text-viamar-500',
   'no-results': 'bg-viamar-50 text-viamar-500',
   error: 'bg-critical-soft text-critical',
   forbidden: 'bg-warning-soft text-warning',
@@ -64,8 +64,9 @@ export function EmptyState({
           'inline-flex items-center justify-center',
           /* En tamaño grande el disco se vuelve circular: a esa escala un
              cuadrado redondeado se lee como una tarjeta vacía más. */
-          grande ? 'h-20 w-20 rounded-full' : 'rounded-md',
-          compact ? 'h-9 w-9' : grande ? '' : 'h-11 w-11',
+          /* Disco circular, como los iconos de las tarjetas del panel. */
+          'rounded-full',
+          compact ? 'h-10 w-10' : grande ? 'h-20 w-20' : 'h-12 w-12',
           TONE[kind],
         )}
       >

@@ -1,6 +1,28 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowLeftRight, Copy, MapPin, ShieldCheck, ShieldOff } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowLeftRight,
+  BadgeCheck,
+  BatteryCharging,
+  Copy,
+  History,
+  MapPin,
+  ScanBarcode,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldOff,
+  Stethoscope,
+} from 'lucide-react'
+import { PanelHeader, UnderlineTabs } from '../../components/panel/PanelWidgets'
+import { MetricCard } from '../../components/ui/MetricCard'
+import { PageHeader } from '../../components/ui/PageHeader'
+import { Pill } from '../../components/ui/Pill'
+import { SectionCard } from '../../components/ui/SectionCard'
+import { SerialCell } from '../../components/ui/SerialCell'
+import { MetricGrid } from '../../components/ui/Workspace'
+import { cn } from '../../lib/cn'
 import { EVENT_LABEL, UBICACION_LABEL } from '../../domain/catalogs'
 import { formatDate } from '../../domain/dates'
 import { STAR_SERIAL, type EventoTipo } from '../../domain/entities'
@@ -71,6 +93,8 @@ export function SerialPage() {
   if (!bateria || !isBatteryVisible(bateria, user, certificados)) {
     return (
       <EmptyState
+        framed
+        size="lg"
         icon={ShieldOff}
         title="Sin acceso"
         description={
@@ -129,94 +153,87 @@ export function SerialPage() {
   const diagEvento = eventos.find((e) => e.tipo === 'DIAGNOSTICO')
   const cargaEvento = eventos.find((e) => e.tipo === 'CARGA_COMPLETADA')
 
+  const diagItem = bateria.diagnosticoId
+  const estadoServicio = honra
+    ? `Honrada · ${honra.decisionVigencia}`
+    : (UBICACION_LABEL[bateria.ubicacionTipo] ?? bateria.ubicacionTipo)
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 surface p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <nav className="flex flex-wrap items-center gap-1 text-label-sm text-ink-secondary">
-            <Link className="hover:text-viamar-700" to="/">
-              Trazabilidad
+    <div className="flex flex-col gap-4 pb-2">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trazabilidad', to: '/buscar' },
+          ...(chequeo ? [{ label: chequeo.numero, to: `/gestion-tecnica/${chequeo.id}` }] : []),
+          { label: serial },
+        ]}
+        title={serial}
+        chips={
+          <>
+            {diagItem ? <StatusBadge catalogId={diagItem} size="md" /> : null}
+            <StatusBadge catalogId={bateria.origen} />
+            {serial === STAR_SERIAL ? <Pill tone="brand">Serial estrella · {eventos.length} hitos</Pill> : null}
+          </>
+        }
+        description={`${marca?.nombre ?? '—'} · ${articulo?.codigo ?? ''} · ${articulo?.descripcion ?? ''}`}
+        actions={
+          <>
+            <Link to={chequeo ? `/gestion-tecnica/${chequeo.id}` : '/buscar'}>
+              <Button variant="outlined" leadingIcon={<ArrowLeft size={15} />}>
+                {chequeo ? `Volver a ${chequeo.numero}` : 'Volver'}
+              </Button>
             </Link>
-            <span>/</span>
-            <span>Ficha de batería</span>
-            <span>/</span>
-            <span className="rounded bg-viamar-100 px-1.5 py-0.5 font-code-serial text-viamar-700">{serial}</span>
-          </nav>
-          {chequeo ? (
-            <Link
-              className="mt-2 inline-flex items-center gap-1 text-label-md text-viamar-700 hover:text-viamar-link-hover"
-              to={`/gestion-tecnica/${chequeo.id}`}
-            >
-              <ArrowLeft size={16} />
-              Volver a solicitud {chequeo.numero}
-            </Link>
-          ) : (
-            <Link
-              className="mt-2 inline-flex items-center gap-1 text-label-md text-viamar-700 hover:text-viamar-link-hover"
-              to="/"
-            >
-              <ArrowLeft size={16} />
-              Volver al dashboard
-            </Link>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outlined" onClick={copySerial}>
-            <Copy size={16} /> Copiar serial
-          </Button>
-          {cert ? (
-            <Link
-              className="inline-flex h-10 items-center gap-2 rounded bg-viamar-500 px-4 text-body-md font-semibold text-white hover:bg-viamar-600"
-              to={`/certificado/${cert.id}`}
-            >
-              <ShieldCheck size={16} /> Consultar certificado
-            </Link>
-          ) : null}
-        </div>
-      </div>
+            <Button variant="secondary" leadingIcon={<Copy size={15} />} onClick={copySerial}>
+              Copiar serial
+            </Button>
+            {cert ? (
+              <Link to={`/certificado/${cert.id}`}>
+                <Button leadingIcon={<ShieldCheck size={15} />}>Consultar certificado</Button>
+              </Link>
+            ) : null}
+          </>
+        }
+      />
 
-      <section className="surface p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded bg-viamar-500 px-2 py-0.5 text-label-sm uppercase tracking-widest text-white">
-            {marca?.nombre ?? '—'}
-          </span>
-          <span className="rounded bg-app-surface-alt px-2 py-0.5 text-label-sm">{articulo?.codigo}</span>
-          <StatusBadge catalogId={bateria.origen} />
-          {serial === STAR_SERIAL ? (
-            <span className="rounded bg-viamar-50 px-2 py-0.5 text-label-sm text-viamar-700">
-              Serial estrella · {eventos.length} hitos
-            </span>
-          ) : null}
-        </div>
-        <p className="mt-3 text-label-sm uppercase tracking-widest text-ink-secondary">
-          Código de identificación de batería (CIB)
-        </p>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-code-serial text-headline-xl text-viamar-700">{serial}</h1>
-            <p className="mt-1 text-headline-sm">{articulo?.descripcion}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-2 rounded bg-danger/10 p-2">
-              <ShieldCheck className="text-danger" size={18} />
-              <div>
-                <p className="text-label-sm uppercase text-danger">Estado de servicio</p>
-                <p className="text-label-md">
-                  {honra ? `Honrada · ${honra.decisionVigencia}` : UBICACION_LABEL[bateria.ubicacionTipo]}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded bg-app-surface-alt p-2">
-              <MapPin className="text-viamar-500" size={18} />
-              <div>
-                <p className="text-label-sm uppercase text-ink-secondary">Ubicación física</p>
-                <p className="text-label-md">{ubicacion}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <MetricGrid columns={4}>
+        <MetricCard
+          label="Estado de servicio"
+          value={<span className="text-metric-lg">{estadoServicio}</span>}
+          icon={honra ? ShieldAlert : ShieldCheck}
+          tone={honra ? 'danger' : 'ok'}
+          context={honra ? `Honra ${humanizeEstado(honra.estado).toLowerCase()}` : 'Sin honra registrada'}
+        />
+        <MetricCard
+          label="Ubicación física"
+          value={<span className="text-metric-lg">{ubicacion}</span>}
+          icon={MapPin}
+          tone="brand"
+          context={dealer?.localidad ?? UBICACION_LABEL[bateria.ubicacionTipo]}
+        />
+        <MetricCard
+          label="Certificado digital"
+          value={<span className="text-metric-lg">{cert ? `CERT-${cert.estado}` : 'Sin certificado'}</span>}
+          icon={BadgeCheck}
+          tone={cert?.estado === 'C' ? 'danger' : cert ? 'ok' : 'neutral'}
+          filled={Boolean(cert) && cert?.estado !== 'C' ? true : undefined}
+          context={
+            cert?.estado === 'C'
+              ? 'Cancelado — no habilita honra'
+              : cert
+                ? `Vigente hasta ${formatDate(cert.fechaFinProrrateo)}`
+                : 'Se activa con la venta al cliente'
+          }
+        />
+        <MetricCard
+          label="Eventos registrados"
+          value={eventos.length}
+          icon={History}
+          tone="accent"
+          context={eventos.length ? `Último: ${formatDate(eventos[eventos.length - 1].fecha)}` : 'Sin historial'}
+        />
+      </MetricGrid>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 rounded bg-app-surface-alt p-3 md:grid-cols-3 lg:grid-cols-6">
+      <SectionCard title="Datos de la batería" icon={<ScanBarcode />}>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3 xl:grid-cols-6">
           <Spec label="Responsable actual" value={ubicacion} hint={dealer?.localidad} />
           <Spec
             label="Canal / tipo de venta"
@@ -237,40 +254,34 @@ export function SerialPage() {
             }
             hint={politica ? `${politica.mesesFull}m full / ${politica.mesesProrrateo}m prorr.` : undefined}
           />
-          <Spec
-            label="Certificado digital"
-            value={cert ? `CERT-${cert.estado}` : '—'}
-            hint={
-              cert?.estado === 'C'
-                ? 'Cancelado — no habilita honra'
-                : cert
-                  ? `Vigente hasta ${formatDate(cert.fechaFinProrrateo)}`
-                  : undefined
-            }
-          />
+          <Spec label="Artículo" value={articulo?.codigo ?? '—'} hint={marca?.nombre} />
           <Spec label="Cliente" value={cliente?.nombre ?? '—'} hint={cliente?.documento} />
-        </div>
-      </section>
+        </dl>
+      </SectionCard>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card title="Certificado digital" badge={cert ? <StatusBadge catalogId={cert.estado} /> : null}>
+      <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
+        <Card
+          title="Certificado digital"
+          icon={BadgeCheck}
+          badge={cert ? <StatusBadge catalogId={cert.estado} /> : null}
+        >
           {mesesUso != null && politica ? (
             <>
-              <p className="text-headline-lg text-viamar-700">
+              <p className="text-metric-lg text-ink">
                 Mes {mesesUso}{' '}
                 <span className="text-body-sm font-normal text-ink-secondary">/ {mesesProrrateo} meses</span>
               </p>
-              <p className="text-label-sm text-ink-secondary">{pctPlazo} % del plazo</p>
-              <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-app-border">
-                <span className="bg-viamar-500" style={{ width: `${Math.min(pctUsado, pctFull)}%` }} />
-                <span className="bg-viamar-accent" style={{ width: `${Math.max(0, pctUsado - pctFull)}%` }} />
+              <p className="text-body-xs text-ink-secondary">{pctPlazo} % del plazo</p>
+              <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-neutral-100">
+                <span className="rounded-l-full bg-success" style={{ width: `${Math.min(pctUsado, pctFull)}%` }} />
+                <span className="bg-info" style={{ width: `${Math.max(0, pctUsado - pctFull)}%` }} />
               </div>
-              <p className="mt-2 rounded bg-app-surface-alt p-2 text-body-sm">
+              <Nota>
                 Cobertura al honrar:{' '}
-                <strong className="text-viamar-700">
+                <strong className="text-viamar-600">
                   {cob === 100 ? 'Full 100 %' : `Prorrateo ${cob?.toFixed(0)} %`}
                 </strong>
-              </p>
+              </Nota>
             </>
           ) : (
             <p className="text-body-sm text-ink-secondary">Sin venta registrada.</p>
@@ -279,19 +290,20 @@ export function SerialPage() {
 
         <Card
           title="Último diagnóstico"
+          icon={Stethoscope}
           badge={bateria.diagnosticoId ? <StatusBadge catalogId={bateria.diagnosticoId} /> : null}
         >
           {linea ? (
             <>
-              <p className="text-headline-lg text-danger">
+              <p className="text-metric-lg text-ink">
                 {linea.voltaje.toFixed(2)} V{' '}
-                <span className="text-body-sm font-normal text-ink-secondary">| {linea.densidad} g/cm³</span>
+                <span className="text-body-sm font-normal text-ink-secondary">· {linea.densidad} g/cm³</span>
               </p>
-              <p className="text-body-sm text-ink-secondary">
-                Capacidad medida: <strong className="text-danger">{linea.capacidadMedida} %</strong>
+              <p className="text-body-xs text-ink-secondary">
+                Capacidad medida: <strong className="text-critical-text">{linea.capacidadMedida} %</strong>
                 {articulo ? ` de ${articulo.capacidadNominal} CCA` : ''}
               </p>
-              <p className="mt-2 rounded bg-danger/10 p-2 text-body-sm">{linea.accionSugerida}</p>
+              <Nota tono="danger">{linea.accionSugerida}</Nota>
             </>
           ) : (
             <p className="text-body-sm text-ink-secondary">
@@ -300,12 +312,12 @@ export function SerialPage() {
           )}
         </Card>
 
-        <Card title="Proceso de carga">
+        <Card title="Proceso de carga" icon={BatteryCharging}>
           {carga ? (
             <>
-              <p className="text-headline-lg">{carga.porcentajeCarga} %</p>
-              <p className="text-body-sm text-ink-secondary">{centro?.nombre ?? carga.centroId}</p>
-              <p className="mt-2 rounded bg-app-surface-alt p-2 text-body-sm">Resultado: {carga.resultado}</p>
+              <p className="text-metric-lg text-ink">{carga.porcentajeCarga} %</p>
+              <p className="text-body-xs text-ink-secondary">{centro?.nombre ?? carga.centroId}</p>
+              <Nota>Resultado: {humanizeEstado(carga.resultado)}</Nota>
             </>
           ) : (
             <p className="text-body-sm text-ink-secondary">
@@ -316,29 +328,19 @@ export function SerialPage() {
 
         <Card
           title="Unidad sustituta"
-          badge={
-            honra ? (
-              <span className="rounded-sm bg-viamar-50 px-2 py-0.5 text-label-md text-viamar-800 ring-1 ring-inset ring-viamar-200">
-                Honra {humanizeEstado(honra.estado)}
-              </span>
-            ) : null
-          }
+          icon={ArrowLeftRight}
+          badge={honra ? <Pill tone="brand">Honra {humanizeEstado(honra.estado)}</Pill> : null}
         >
           {bateria.serialReemplazadoPor ? (
             <>
-              <Link
-                className="font-code-serial text-headline-md text-viamar-700 hover:text-viamar-link-hover"
-                to={`/serial/${bateria.serialReemplazadoPor}`}
-              >
-                {bateria.serialReemplazadoPor}
-              </Link>
+              <SerialCell serial={bateria.serialReemplazadoPor} className="text-headline-md" />
               {honra ? (
-                <p className="mt-2 rounded bg-viamar-50 p-2 text-body-sm">
+                <Nota>
                   Vigencia del reemplazo: <strong>{honra.decisionVigencia}</strong>
                   {honra.decisionVigencia === 'HEREDA'
                     ? ' — conserva la fecha de activación original (WI #2926).'
                     : ' — nueva garantía desde la honra (WI #2926).'}
-                </p>
+                </Nota>
               ) : null}
             </>
           ) : (
@@ -348,74 +350,53 @@ export function SerialPage() {
       </div>
 
       {honra && bateria.serialReemplazadoPor ? (
-        <div className="flex flex-col items-start justify-between gap-3 surface p-4 md:flex-row md:items-center">
+        <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-viamar-200 bg-gradient-to-br from-white to-viamar-50 px-4 py-3 shadow-xs md:flex-row md:items-center">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-viamar-100 text-viamar-700">
-              <ArrowLeftRight size={22} />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-viamar-100/80 text-viamar-600">
+              <ArrowLeftRight size={19} />
             </span>
             <div>
-              <p className="text-label-lg">Cadena de identidad: original vs reemplazo</p>
+              <p className="text-label-lg text-ink">Cadena de identidad: original vs reemplazo</p>
               <p className="text-body-sm text-ink-secondary">
-                <span className="font-code-serial text-ink">{serial}</span> queda retirada. El serial{' '}
-                <span className="font-code-serial text-viamar-700">{bateria.serialReemplazadoPor}</span>{' '}
-                hereda o resetea vigencia según el momento de la honra — no se transfiere la póliza a ciegas.
+                <span className="font-semibold text-ink">{serial}</span> queda retirada. El serial{' '}
+                <SerialCell serial={bateria.serialReemplazadoPor} /> hereda o resetea vigencia según el momento de
+                la honra — no se transfiere la póliza a ciegas.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="rounded bg-app-surface-alt px-3 py-1 font-mono text-label-sm">
-              Cliente pagó {usd(honra.resultadoCalculo.montoCliente)}
-            </span>
-            <span className="rounded bg-viamar-50 px-3 py-1 font-mono text-label-sm text-viamar-800">
-              Acreditado {usd(honra.resultadoCalculo.montoAcreditar)}
-            </span>
+            <Pill tone="neutral">Cliente pagó {usd(honra.resultadoCalculo.montoCliente)}</Pill>
+            <Pill tone="brand">Acreditado {usd(honra.resultadoCalculo.montoAcreditar)}</Pill>
           </div>
         </div>
       ) : null}
 
       {bateria.serialReemplazoDe ? (
-        <p className="text-body-sm">
-          Esta unidad reemplaza a{' '}
-          <Link
-            className="font-code-serial text-viamar-700 hover:text-viamar-link-hover"
-            to={`/serial/${bateria.serialReemplazoDe}`}
-          >
-            {bateria.serialReemplazoDe}
-          </Link>
+        <p className="flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-body-sm shadow-xs">
+          <ArrowLeftRight size={15} className="text-viamar-500" aria-hidden="true" />
+          Esta unidad reemplaza a <SerialCell serial={bateria.serialReemplazoDe} />
         </p>
       ) : null}
 
-      <section className="surface p-5">
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-headline-lg text-viamar-800">Trazabilidad cronológica</h2>
-            <p className="text-body-sm text-ink-secondary">
-              Registro inmutable. {eventos.length} evento{eventos.length === 1 ? '' : 's'}
-              {serial === STAR_SERIAL ? ' — los 11 hitos del serial estrella.' : '.'}
-            </p>
-          </div>
-          <div className="flex rounded bg-app-surface-alt p-1">
-            {(
-              [
-                ['todos', `Todos (${eventos.length})`],
-                ['tecnicos', 'Técnicos'],
-                ['comerciales', 'Comerciales'],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setFiltro(id)}
-                className={
-                  filtro === id
-                    ? 'rounded bg-white px-3 py-1 text-label-sm text-viamar-700 shadow-panel'
-                    : 'px-3 py-1 text-label-sm text-ink-secondary hover:text-ink'
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      <section className="surface px-4 pb-4 pt-3.5">
+        <PanelHeader
+          title="Trazabilidad cronológica"
+          info={`Registro inmutable. ${eventos.length} evento${eventos.length === 1 ? '' : 's'}${serial === STAR_SERIAL ? ' — los 11 hitos del serial estrella.' : '.'}`}
+        />
+        <div className="mb-4 mt-2">
+          <UnderlineTabs
+            active={filtro}
+            onChange={setFiltro}
+            tabs={[
+              { id: 'todos', label: 'Todos', count: eventos.length },
+              { id: 'tecnicos', label: 'Técnicos', count: eventos.filter((e) => TECNICOS.includes(e.tipo)).length },
+              {
+                id: 'comerciales',
+                label: 'Comerciales',
+                count: eventos.filter((e) => COMERCIALES.includes(e.tipo)).length,
+              },
+            ]}
+          />
         </div>
         <Timeline
           events={filtrados.map((e) => ({
@@ -434,19 +415,47 @@ export function SerialPage() {
 
 function Spec({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div>
-      <p className="text-label-sm text-ink-secondary">{label}</p>
-      <p className="truncate text-label-md">{value}</p>
-      {hint ? <p className="truncate text-body-sm text-ink-secondary">{hint}</p> : null}
+    <div className="min-w-0">
+      <dt className="text-body-xs text-ink-tertiary">{label}</dt>
+      <dd className="mt-0.5 truncate text-label-lg text-ink">{value}</dd>
+      {hint ? <dd className="truncate text-body-xs text-ink-secondary">{hint}</dd> : null}
     </div>
   )
 }
 
-function Card({ title, badge, children }: { title: string; badge?: ReactNode; children: ReactNode }) {
+function Nota({ children, tono = 'brand' }: { children: ReactNode; tono?: 'brand' | 'danger' }) {
   return (
-    <article className="surface flex flex-col gap-1.5 p-4">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-label-md">{title}</p>
+    <p
+      className={cn(
+        'mt-2 rounded-lg border px-3 py-2 text-body-sm',
+        tono === 'danger'
+          ? 'border-critical-border/60 bg-critical-soft/60 text-critical-text'
+          : 'border-[#e6edf5] bg-[#f7fafd] text-ink',
+      )}
+    >
+      {children}
+    </p>
+  )
+}
+
+function Card({
+  title,
+  icon: Icon,
+  badge,
+  children,
+}: {
+  title: string
+  icon: LucideIcon
+  badge?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <article className="surface flex flex-col gap-1 p-4 transition-shadow duration-200 hover:shadow-md">
+      <div className="mb-2 flex items-center gap-2.5">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-viamar-50 text-viamar-600">
+          <Icon size={16} aria-hidden="true" />
+        </span>
+        <p className="min-w-0 flex-1 truncate text-headline-sm text-ink">{title}</p>
         {badge}
       </div>
       {children}

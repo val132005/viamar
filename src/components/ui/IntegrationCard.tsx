@@ -1,4 +1,5 @@
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Send } from 'lucide-react'
+import { Pill } from './Pill'
 import { StatusBadge } from './StatusBadge'
 import { Button } from './Button'
 
@@ -18,13 +19,18 @@ const ESTADO_LABEL = {
 
 export function IntegrationCard({ verb, payload, estado, origenId, onRetry }: Props) {
   return (
-    <article className="surface p-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-code-serial text-viamar-700 text-[13px]">{verb}</p>
-        <span className="text-label-sm uppercase text-ink-secondary">{ESTADO_LABEL[estado]}</span>
+    <article className="surface flex flex-col gap-2.5 p-4 transition-shadow duration-200 hover:shadow-md">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-viamar-50 text-viamar-600">
+          <Send size={16} aria-hidden="true" />
+        </span>
+        <p className="min-w-0 flex-1 truncate font-semibold tracking-[0.02em] text-viamar-600 text-[13px]">{verb}</p>
+        <Pill tone={estado === 'enviado' ? 'ok' : estado === 'error' ? 'danger' : 'warn'} dot>
+          {ESTADO_LABEL[estado]}
+        </Pill>
       </div>
       {origenId ? <StatusBadge catalogId={origenId} /> : null}
-      <pre className="text-[12px] bg-viamar-50 border border-app-border rounded-lg p-2 overflow-x-auto">
+      <pre className="scroll-slim overflow-x-auto rounded-lg border border-[#e6edf5] bg-[#f7fafd] p-2.5 font-mono text-[11.5px] text-ink">
         {payload}
       </pre>
       {estado === 'error' && onRetry ? (

@@ -53,13 +53,13 @@ export function NotificationCenter() {
         aria-expanded={open}
         aria-label={total > 0 ? `Avisos: ${total} requieren atención` : 'Avisos'}
         className={cn(
-          'relative inline-flex h-control-md w-control-md items-center justify-center rounded-full border border-line transition-colors duration-fast',
-          open ? 'border-viamar-200 bg-surface-active text-ink' : 'bg-surface-subtle text-ink-secondary hover:bg-surface-hover hover:text-ink',
+          'relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-fast',
+          open ? 'bg-surface-active text-ink' : 'text-[#3e5a7c] hover:bg-surface-hover hover:text-ink',
         )}
       >
-        <Bell size={17} />
+        <Bell size={20} strokeWidth={1.9} />
         {total > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-label-sm tabular-nums text-white">
+          <span className="absolute right-0.5 top-0 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ea3a3e] px-1 text-[9px] font-bold tabular-nums text-white ring-2 ring-white">
             {total}
           </span>
         ) : null}
@@ -69,9 +69,9 @@ export function NotificationCenter() {
         <div
           role="dialog"
           aria-label="Centro de avisos"
-          className="surface-raised absolute right-0 z-30 mt-1.5 w-[22rem] overflow-hidden"
+          className="surface-raised absolute right-0 z-30 mt-1.5 w-[23rem] overflow-hidden"
         >
-          <header className="flex items-center justify-between gap-2 border-b border-line px-3.5 py-2.5">
+          <header className="flex items-center justify-between gap-2 border-b border-line-subtle px-4 py-3">
             <h2 className="text-headline-md text-ink">Avisos</h2>
             <span className="text-body-xs text-ink-tertiary">
               {total > 0 ? `${total} requieren atención` : 'Todo al día'}
@@ -80,7 +80,9 @@ export function NotificationCenter() {
 
           {notificaciones.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <CheckCircle2 size={22} className="mx-auto text-success" aria-hidden="true" />
+              <span className="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-success-soft text-success">
+                <CheckCircle2 size={21} aria-hidden="true" />
+              </span>
               <p className="mt-2 text-label-lg text-ink">No hay nada pendiente</p>
               <p className="mt-0.5 text-body-xs text-ink-tertiary">
                 Las colas de trabajo de tu rol están vacías.
@@ -95,16 +97,16 @@ export function NotificationCenter() {
                     <Link
                       to={n.to}
                       onClick={() => setOpen(false)}
-                      className="flex gap-2.5 px-3.5 py-2.5 transition-colors duration-fast hover:bg-surface-hover"
+                      className="flex gap-3 px-4 py-2.5 transition-colors duration-fast hover:bg-[#f7fafd]"
                     >
                       <span
                         className={cn(
-                          'mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm',
+                          'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
                           TONO[n.tone],
                         )}
                         aria-hidden="true"
                       >
-                        <Icon size={14} strokeWidth={2.2} />
+                        <Icon size={16} strokeWidth={2} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-label-lg leading-5 text-ink">{n.title}</span>

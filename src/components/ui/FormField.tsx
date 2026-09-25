@@ -6,8 +6,11 @@ type Base = {
   hint?: string
 }
 
+/* Controles con la piel del panel: filo frío, esquinas de 6 px y foco azul. */
 const inputClass =
-  'h-10 w-full px-3 rounded-lg border border-app-border-strong bg-white text-body-md transition-shadow focus:shadow-glow'
+  'h-9 w-full rounded-[6px] border border-[#d9e2ec] bg-white px-3 text-body-sm font-normal text-ink transition-[border-color,box-shadow] duration-fast placeholder:text-[#8591a3] hover:border-viamar-300 focus:border-viamar-400 focus:shadow-focus focus:outline-none disabled:bg-surface-subtle disabled:text-ink-tertiary'
+
+const labelClass = 'flex flex-col gap-1.5 text-label-md text-ink-secondary'
 
 export function FormField({
   label,
@@ -16,7 +19,7 @@ export function FormField({
   ...props
 }: Base & InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="flex flex-col gap-1 text-label-md">
+    <label className={labelClass}>
       {label}
       <input className={cn(inputClass, className)} {...props} />
       {hint ? <span className="text-body-sm text-ink-secondary font-normal">{hint}</span> : null}
@@ -31,9 +34,9 @@ export function SelectField({
   ...props
 }: Base & SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <label className="flex flex-col gap-1 text-label-md">
+    <label className={labelClass}>
       {label}
-      <select className={inputClass} {...props}>
+      <select className={cn(inputClass, 'cursor-pointer')} {...props}>
         {children}
       </select>
       {hint ? <span className="text-body-sm text-ink-secondary font-normal">{hint}</span> : null}
@@ -48,11 +51,12 @@ export function TextAreaField({
   ...props
 }: Base & TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
-    <label className="flex flex-col gap-1 text-label-md">
+    <label className={labelClass}>
       {label}
       <textarea
         className={cn(
-          'w-full px-3 py-2 rounded-lg border border-app-border-strong bg-white text-body-md min-h-32 transition-shadow focus:shadow-glow',
+          inputClass,
+          'h-auto min-h-32 py-2',
           className,
         )}
         {...props}

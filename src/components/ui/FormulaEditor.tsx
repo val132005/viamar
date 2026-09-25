@@ -17,10 +17,10 @@ export function FormulaEditor({ value, onChange }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2">
-        <Button variant="outlined" className="h-8 text-label-md" onClick={() => onChange(PRESETS.FDD489)}>
+        <Button variant="outlined" size="sm" onClick={() => onChange(PRESETS.FDD489)}>
           Preset FDD 489
         </Button>
-        <Button variant="outlined" className="h-8 text-label-md" onClick={() => onChange(PRESETS.FRD489)}>
+        <Button variant="outlined" size="sm" onClick={() => onChange(PRESETS.FRD489)}>
           Preset FRD 489
         </Button>
       </div>
@@ -36,7 +36,7 @@ export function FormulaEditor({ value, onChange }: Props) {
           <button
             key={v}
             type="button"
-            className="px-2.5 py-0.5 rounded-full border border-viamar-200 bg-viamar-50 text-viamar-700 text-label-sm hover:bg-viamar-100 transition-colors"
+            className="inline-flex h-[24px] items-center rounded-full border border-viamar-200 bg-viamar-50 px-2.5 font-mono text-[11.5px] text-viamar-700 transition-colors duration-fast hover:border-viamar-300 hover:bg-viamar-100"
             onClick={() => onChange(value ? `${value} ${v}` : v)}
           >
             {v}

@@ -7,12 +7,10 @@ export function LoginPage() {
   const navigate = useNavigate()
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_0.95fr]">
-      <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-viamar-900 text-white p-12">
+      <section className="relative hidden lg:flex flex-col justify-between overflow-hidden text-white p-12">
         <BrandMesh />
         <div className="relative">
-          <div className="inline-flex bg-white rounded-xl px-4 py-3 shadow-lift">
-            <ViamarLogo className="h-10 w-auto" />
-          </div>
+          <ViamarLogo className="logo-negativo h-12 w-auto" />
         </div>
         <div className="relative max-w-lg">
           <p className="text-label-sm uppercase tracking-[0.18em] text-viamar-accent mb-3">
@@ -32,13 +30,15 @@ export function LoginPage() {
       </section>
 
       <section className="relative flex flex-col items-center justify-center p-6 sm:p-10">
-        <div className="lg:hidden mb-8 bg-white rounded-xl px-4 py-3 shadow-panel">
-          <ViamarLogo className="h-9 w-auto" />
+        <div className="lg:hidden mb-8">
+          <ViamarLogo className="h-10 w-auto" />
         </div>
-        <div className="surface w-full max-w-[440px] p-8 flex flex-col gap-6">
-          <MicrosoftMark className="h-6 w-6" />
+        <div className="surface-raised w-full max-w-[440px] p-8 flex flex-col gap-6">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-viamar-50">
+            <MicrosoftMark className="h-5 w-5" />
+          </span>
           <div>
-            <h1 className="text-[24px] font-semibold text-viamar-900">Iniciar sesión</h1>
+            <h1 className="text-headline-xl text-ink">Iniciar sesión</h1>
             <p className="text-body-sm text-ink-secondary mt-1">
               Use su cuenta de trabajo de Grupo Viamar (Entra ID simulado).
             </p>
@@ -46,12 +46,12 @@ export function LoginPage() {
           <button
             type="button"
             onClick={() => navigate('/login/cuentas')}
-            className="h-12 w-full bg-[#2F2F2F] text-white font-semibold rounded-lg inline-flex items-center justify-center gap-2 hover:bg-black transition-transform duration-200 ease-brand hover:-translate-y-px"
+            className="h-12 w-full rounded-lg bg-gradient-to-b from-[#0a6fe8] to-[#0463dc] text-white font-semibold inline-flex items-center justify-center gap-2 shadow-[0_2px_8px_rgba(4,100,220,0.3)] transition-[filter,transform] duration-200 ease-brand hover:-translate-y-px hover:brightness-110"
           >
             <MicrosoftMark className="h-4 w-4" />
             Continuar con Microsoft
           </button>
-          <p className="text-[12px] text-ink-secondary">
+          <p className="rounded-lg border border-[#e6edf5] bg-[#f7fafd] px-3 py-2 text-[12px] text-ink-secondary">
             Prototipo: no hay tenant real. El selector emite un token ficticio con{' '}
             <code>roles[]</code> listo para sustituir por MSAL.
           </p>

@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Check, CheckCircle2, Handshake, PackagePlus, X } from 'lucide-react'
+import { Check, CheckCircle2, Coins, Handshake, PackagePlus, ShieldCheck, ShieldX, X } from 'lucide-react'
+import { DonaEstado, PanelHeader, Ranking, type SegmentoDona } from '../../components/panel/PanelWidgets'
+import { PANEL } from '../../components/panel/tonos'
+import { cn } from '../../lib/cn'
 import { Button } from '../../components/ui/Button'
 import { DataTable, CellStack } from '../../components/ui/DataTable'
 import { Modal } from '../../components/ui/Modal'
@@ -148,8 +151,29 @@ export function DealerAuthPage() {
     )
   }, [historial, needle, dealerDe])
 
+  const delDealer = honras.filter((h) => h.origen === 'dealer')
+  const ejecutadasDealer = historial.filter((h) => h.estado === 'EJECUTADA')
+  const acreditadoDealer = ejecutadasDealer.reduce((a, h) => a + h.resultadoCalculo.montoAcreditar, 0)
+  const porDesenlace: SegmentoDona[] = [
+    { id: 'pend', label: 'Pendientes', valor: pendientes.length, tono: 'warn' },
+    { id: 'aut', label: 'Autorizadas por reponer', valor: autorizadas.length, tono: 'accent' },
+    { id: 'ejec', label: 'Ejecutadas', valor: ejecutadasDealer.length, tono: 'ok' },
+    { id: 'rech', label: 'Rechazadas', valor: historial.filter((h) => h.estado === 'RECHAZADA').length, tono: 'danger' },
+  ]
+  const porDealer = (() => {
+    const mapa = new Map<string, number>()
+    for (const h of delDealer) {
+      const n = dealerDe(h.serialOriginal)
+      mapa.set(n, (mapa.get(n) ?? 0) + 1)
+    }
+    return [...mapa.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([label, valor]) => ({ id: label, label, valor }))
+  })()
+
   return (
-    <div className="page-fill">
+    <div className="flex flex-col gap-4 pb-2">
       <PageHeader
         title="Autorización de honras de distribuidores"
         description="Bandeja de validación técnica y comercial de reclamos de garantía reportados desde el portal de dealers. Tras autorizar, la reposición se atiende por FIFO desde el inventario central."
@@ -171,7 +195,7 @@ export function DealerAuthPage() {
         }
       />
 
-      <MetricGrid columns={3}>
+      <MetricGrid columns={4}>
         <MetricCard
           label="Pendientes de autorización"
           value={pendientes.length}
@@ -185,8 +209,7 @@ export function DealerAuthPage() {
           value={autorizadas.length}
           context="Aprobadas listas para asignación de serial FIFO"
           icon={PackagePlus}
-          tone="danger"
-          filled={autorizadas.length > 0}
+          tone="accent"
         />
         <MetricCard
           label="Histórico resuelto"
@@ -196,14 +219,35 @@ export function DealerAuthPage() {
           tone="ok"
           filled={historial.length > 0}
         />
+        <MetricCard
+          label="Acreditado a dealers"
+          value={usd(acreditadoDealer)}
+          context={`En ${ejecutadasDealer.length} reposiciones ejecutadas`}
+          icon={Coins}
+          tone="brand"
+        />
       </MetricGrid>
+
+      <div className="grid gap-3.5 lg:grid-cols-[45fr_55fr]">
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-4 pt-3.5')}>
+          <PanelHeader title="Solicitudes por desenlace" info="Todas las solicitudes de honra registradas por distribuidores." />
+          <div className="mt-3">
+            <DonaEstado segmentos={porDesenlace} unidad="solicitudes" />
+          </div>
+        </section>
+        <section className={cn(PANEL, 'min-w-0 px-4 pb-3 pt-3.5')}>
+          <PanelHeader title="Solicitudes por distribuidor" info="Punto de venta que registró cada reclamo." />
+          <div className="mt-1.5">
+            <Ranking filas={porDealer} total={delDealer.length} />
+          </div>
+        </section>
+      </div>
 
         {/* Bandeja: pendientes de autorización */}
         {tab === 'pendientes' && (
           <DataTable
             title="Pendientes de autorización"
-            icon={<Handshake size={15} />}
-            density="compact"
+            fill={false}
             search={{ value: q, onChange: setQ, placeholder: 'Buscar por serial o dealer…' }}
             columns={[
               {
@@ -305,8 +349,7 @@ export function DealerAuthPage() {
         {tab === 'autorizadas' && (
           <DataTable
             title="Autorizadas por reponer"
-            icon={<PackagePlus size={15} />}
-            density="compact"
+            fill={false}
             search={{ value: q, onChange: setQ, placeholder: 'Buscar por serial o dealer…' }}
             columns={[
               {
@@ -372,8 +415,7 @@ export function DealerAuthPage() {
         {tab === 'historial' && (
           <DataTable
             title="Historial de solicitudes"
-            icon={<CheckCircle2 size={15} />}
-            density="compact"
+            fill={false}
             search={{ value: q, onChange: setQ, placeholder: 'Buscar en historial…' }}
             columns={[
               {
@@ -439,6 +481,8 @@ export function DealerAuthPage() {
       <Modal
         open={autorizarId !== null}
         title="Autorizar solicitud de garantía de dealer"
+        icon={ShieldCheck}
+        tone="ok"
         onClose={() => setAutorizarId(null)}
         footer={
           <>
@@ -468,6 +512,8 @@ export function DealerAuthPage() {
       <Modal
         open={rechazoId !== null}
         title="Rechazar solicitud de garantía"
+        icon={ShieldX}
+        tone="danger"
         onClose={() => setRechazoId(null)}
         footer={
           <>
@@ -497,6 +543,7 @@ export function DealerAuthPage() {
       <Modal
         open={reposicionId !== null}
         title="Reposición FIFO desde inventario central Viamar"
+        icon={PackagePlus}
         onClose={() => setReposicionId(null)}
         footer={
           <>
@@ -526,7 +573,7 @@ export function DealerAuthPage() {
             ))}
           </SelectField>
           {candidatos.length === 0 ? (
-            <p className="text-body-sm text-critical">
+            <p className="rounded-lg border border-critical-border/60 bg-critical-soft/70 px-3 py-2 text-body-sm text-critical-text">
               No hay stock central disponible de este artículo para reposición inmediata.
             </p>
           ) : null}

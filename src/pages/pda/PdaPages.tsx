@@ -119,7 +119,7 @@ export function PdaConteoPage() {
       </div>
 
       {/* Avance del conteo: lo que el técnico mira entre lectura y lectura. */}
-      <div>
+      <div className="rounded-xl border border-line bg-white p-4 shadow-xs">
         <ProgressBar done={visit.seen.length} total={esperado.length} />
         <p className="mt-2.5 text-body-sm text-ink-secondary">
           Contados <strong className="tabular-nums text-ink">{visit.seen.length}</strong> /
@@ -156,9 +156,9 @@ function SerialList({ title, seriales }: { title: string; seriales: string[] }) 
   return (
     <section>
       <h2 className="mb-2 text-headline-sm text-ink">{title}</h2>
-      <ul className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line bg-white">
+      <ul className="divide-y divide-[#edf1f6] overflow-hidden rounded-xl border border-line bg-white shadow-xs">
         {seriales.map((s) => (
-          <li key={s} className="px-3.5 py-2.5 font-code-serial text-body-sm text-ink">
+          <li key={s} className="px-3.5 py-2.5 text-body-sm font-semibold tabular-nums text-viamar-500">
             {s}
           </li>
         ))}
@@ -221,8 +221,8 @@ export function PdaDiagnosticoPage() {
         </div>
       ) : (
         <>
-          <div className="surface flex flex-wrap items-center justify-between gap-2 p-3">
-            <span className="font-code-serial text-headline-md text-ink">{serial}</span>
+          <div className="surface flex flex-wrap items-center justify-between gap-2 p-3.5">
+            <span className="text-headline-md tabular-nums text-viamar-600">{serial}</span>
             {bateria ? (
               <StatusBadge catalogId={bateria.diagnosticoId} size="md" />
             ) : (
@@ -242,11 +242,11 @@ export function PdaDiagnosticoPage() {
                   type="button"
                   disabled={!bateria}
                   onClick={() => dictaminar(d.id)}
-                  className="flex items-center gap-4 rounded-2xl border border-line bg-white px-4 py-4 text-left shadow-xs transition-[border-color,box-shadow] duration-fast ease-brand hover:border-viamar-200 hover:shadow-sm active:bg-surface-active disabled:pointer-events-none disabled:opacity-50"
+                  className="flex items-center gap-4 rounded-xl border border-line bg-white px-4 py-4 text-left shadow-xs transition-[border-color,box-shadow,transform] duration-200 ease-brand hover:-translate-y-0.5 hover:border-viamar-200 hover:shadow-md active:bg-surface-active disabled:pointer-events-none disabled:opacity-50"
                 >
                   <span
                     className={cn(
-                      'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl',
+                      'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full',
                       d.tint,
                     )}
                     aria-hidden="true"
@@ -353,7 +353,7 @@ export function PdaResumenPage() {
 
       {/* Recuento de lo que se va a enviar: la última oportunidad de ver un
           faltante antes de que la visita quede cerrada. */}
-      <section className="rounded-2xl border border-line bg-white p-4 shadow-xs">
+      <section className="rounded-xl border border-line bg-white p-4 shadow-xs">
         <ProgressBar done={visit.seen.length} total={esperado.length} />
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
           <Resumen label="Contados" value={`${visit.seen.length} / ${esperado.length}`} />

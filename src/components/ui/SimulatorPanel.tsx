@@ -6,6 +6,7 @@ import { mesesCalendarioEnteros, parseIso } from '../../domain/warranty/months'
 import { simulatePolicy } from '../../domain/warranty/simulate'
 import { useBatteryStore } from '../../stores/batteryStore'
 import { useCertificateStore } from '../../stores/certificateStore'
+import { Calculator } from 'lucide-react'
 import { FormField } from './FormField'
 
 type Props = {
@@ -66,12 +67,17 @@ export function SimulatorPanel({ formula, politica }: Props) {
   }, [formula, politica, meses, precioN, vigenteN, cap, preset])
 
   return (
-    <aside className="surface p-5 flex flex-col gap-3">
-      <h3 className="text-headline-sm">Simulador</h3>
-      <label className="flex flex-col gap-1 text-label-md">
+    <aside className="surface flex flex-col gap-3 px-4 pb-4 pt-3.5">
+      <div className="flex items-center gap-2.5">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-viamar-50 text-viamar-600">
+          <Calculator size={15} aria-hidden="true" />
+        </span>
+        <h3 className="text-headline-sm text-ink">Simulador</h3>
+      </div>
+      <label className="flex flex-col gap-1.5 text-label-md text-ink-secondary">
         Serial del seed (opcional)
         <select
-          className="h-10 px-3 rounded-lg border border-app-border-strong bg-white font-code-serial text-[13px] transition-shadow focus:shadow-glow"
+          className="h-9 cursor-pointer rounded-[6px] border border-[#d9e2ec] bg-white px-3 text-body-sm text-ink transition-[border-color,box-shadow] duration-fast hover:border-viamar-300 focus:border-viamar-400 focus:shadow-focus focus:outline-none"
           value={serialPick}
           onChange={(e) => applySerial(e.target.value)}
         >
@@ -98,16 +104,29 @@ export function SimulatorPanel({ formula, politica }: Props) {
         onChange={(e) => setCapacidad(e.target.value)}
       />
       {result ? (
-        <dl className="text-body-sm grid grid-cols-2 gap-2 border-t border-app-border pt-3">
-          <dt className="text-ink-secondary">Admisible</dt>
-          <dd>{result.admisible ? 'Sí' : result.motivoRechazo}</dd>
-          <dt className="text-ink-secondary">Vigencia</dt>
-          <dd className="font-semibold">{result.decisionVigencia}</dd>
-          <dt className="text-ink-secondary">Acreditar</dt>
-          <dd>{usd(result.montoAcreditar)}</dd>
-          <dt className="text-ink-secondary">Paga el cliente</dt>
-          <dd>{usd(result.montoCliente)}</dd>
-        </dl>
+        <div className="grid grid-cols-2 gap-2 border-t border-line-subtle pt-3">
+          {[
+            { l: 'Admisible', v: result.admisible ? 'Sí' : result.motivoRechazo, ok: result.admisible },
+            { l: 'Vigencia', v: result.decisionVigencia },
+            { l: 'Acredita', v: usd(result.montoAcreditar) },
+            { l: 'Paga el cliente', v: usd(result.montoCliente) },
+          ].map((d) => (
+            <div key={d.l} className="rounded-lg border border-[#e6edf5] bg-[#f7fafd] px-3 py-2">
+              <p className="text-body-xs text-ink-tertiary">{d.l}</p>
+              <p
+                className={
+                  d.ok === false
+                    ? 'truncate text-label-lg text-critical-text'
+                    : d.ok
+                      ? 'truncate text-label-lg text-success-text'
+                      : 'truncate text-label-lg tabular-nums text-ink'
+                }
+              >
+                {d.v}
+              </p>
+            </div>
+          ))}
+        </div>
       ) : (
         <p className="text-body-sm text-ink-secondary">Seleccione una política para simular.</p>
       )}

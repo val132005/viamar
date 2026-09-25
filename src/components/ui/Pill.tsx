@@ -68,8 +68,10 @@ export function Pill({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-0.5',
-        'text-label-md ring-1 ring-inset',
+        /* Misma etiqueta que el estado de la tabla del panel: caja de 21 px,
+           esquinas de 4 px y texto seminegrita de 11,5 px. */
+        'inline-flex h-[21px] items-center gap-1.5 whitespace-nowrap rounded-[4px] px-2',
+        'text-[11.5px] font-semibold leading-none ring-1 ring-inset',
         styles[tone],
         className,
       )}
